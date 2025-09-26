@@ -141,3 +141,4 @@ The Next.js frontend now has **exactly the same OAuth callback handling** as `fr
 
 **The OAuth flow is now identical to frontend_old!** 🎉
 
+

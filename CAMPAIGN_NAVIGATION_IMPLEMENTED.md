@@ -153,3 +153,4 @@ The campaign navigation is now **fully functional** and matches the frontend_old
 
 **Next Step**: Test the navigation by clicking on campaign rows and verifying they open the workflow pages correctly.
 
+
