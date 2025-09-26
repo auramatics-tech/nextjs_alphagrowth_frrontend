@@ -1,0 +1,1065 @@
+'use client';
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import {
+  Mail, Phone, MessageSquare, Eye, ThumbsUp, Clipboard,
+  User, Mic, Settings, Users, Briefcase, Send,
+  BarChart3, Plus, X, GitBranch, Clock, Minus, MoreVertical, Save, RefreshCw, AlertCircle, Loader2, CheckCircle,
+  Database, HelpCircle, Star, UserPlus, UserCheck, Play, MessageCircle, Search, Bell, ChevronRight,
+  CalendarDays, Linkedin, Compass, FileText, Bot, Edit3, Info, ArrowLeft
+} from 'lucide-react';
+
+export default function WorkflowPage() {
+  const router = useRouter();
+  
+  // Main state
+  const [loading, setLoading] = useState(true);
+  const [campaignData, setCampaignData] = useState<{ name: string } | null>(null);
+  
+  // Content slider state
+  const [showContentSlider, setShowContentSlider] = useState(false);
+  const [selectedContentMode, setSelectedContentMode] = useState<'ai' | 'custom' | null>(null);
+  const [contentStep, setContentStep] = useState<'selection' | 'editing'>('selection');
+  const [messageCards, setMessageCards] = useState<Array<{
+    id: string;
+    title: string;
+    channel: 'linkedin' | 'email' | 'voice';
+    content: string;
+    subject?: string;
+    characterCount: number;
+    characterLimit: number;
+  }>>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Audience state management
+  const [showAudienceDropdown, setShowAudienceDropdown] = useState(false);
+  const [selectedAudience, setSelectedAudience] = useState<string | null>(null);
+  const [audiences] = useState([
+    { id: '1', name: 'Tech Professionals', count: 1250, description: 'Software engineers, developers, tech leads' },
+    { id: '2', name: 'Marketing Managers', count: 890, description: 'Digital marketing, growth, content managers' },
+    { id: '3', name: 'Sales Directors', count: 456, description: 'VP Sales, Sales Directors, Revenue leaders' },
+    { id: '4', name: 'Startup Founders', count: 234, description: 'Early-stage startup founders and CEOs' }
+  ]);
+
+  // Identity state management
+  const [showIdentityDropdown, setShowIdentityDropdown] = useState(false);
+  const [selectedIdentityDropdown, setSelectedIdentityDropdown] = useState<string | null>(null);
+  const [identities] = useState([
+    { id: 'identity1', name: 'Chait Jain', email: 'chait@company.com', status: 'active' },
+    { id: 'identity2', name: 'John Doe', email: 'john@company.com', status: 'active' },
+    { id: 'identity3', name: 'Jane Smith', email: 'jane@company.com', status: 'inactive' }
+  ]);
+
+  // Workflow state
+  const [isWorkflowExpanded, setIsWorkflowExpanded] = useState(true);
+  const [selectedChannel, setSelectedChannel] = useState<string>('linkedin');
+  const [selectedType, setSelectedType] = useState<'action' | 'condition'>('action');
+
+  // Action Types organized by channel
+  const LINKEDIN_ACTIONS = [
+    { label: 'Visit Profile', iconType: 'action_visit_profile', action_key: 'action_visit_profile', icon: Eye, color: 'text-blue-500', description: 'Visit prospect&apos;s LinkedIn profile' },
+    { label: 'Add Connection', iconType: 'action_invitation', action_key: 'action_invitation', icon: User, color: 'text-blue-500', description: 'Send connection request' },
+    { label: 'Send Message', iconType: 'action_send_message', action_key: 'action_send_message', icon: MessageSquare, color: 'text-blue-500', description: 'Send personalized message' },
+    { label: 'Send Voice', iconType: 'action_ai_voice_message', action_key: 'action_ai_voice_message', icon: Mic, color: 'text-blue-500', description: 'Send voice message' },
+    { label: 'Like Post', iconType: 'action_like_post', action_key: 'action_like_post', icon: ThumbsUp, color: 'text-blue-500', description: 'Like a LinkedIn post' }
+  ];
+
+  const EMAIL_ACTIONS = [
+    { label: 'Send Email', iconType: 'action_send_email', action_key: 'action_send_email', icon: Mail, color: 'text-green-500', description: 'Send personalized email' },
+    { label: 'Follow Up', iconType: 'action_follow_up', action_key: 'action_follow_up', icon: RefreshCw, color: 'text-green-500', description: 'Send follow-up email' }
+  ];
+
+  const TASK_ACTIONS = [
+    { label: 'Add Task', iconType: 'action_add_task', action_key: 'action_add_task', icon: Clipboard, color: 'text-purple-500', description: 'Add a task to the workflow' },
+    { label: 'Wait', iconType: 'action_wait', action_key: 'action_wait', icon: Clock, color: 'text-purple-500', description: 'Wait for specified time' }
+  ];
+
+  const CALL_ACTIONS = [
+    { label: 'AI Voice Agent Call', iconType: 'action_ai_voice_call', action_key: 'action_ai_voice_call', icon: Phone, color: 'text-orange-500', description: 'Make AI-powered voice call' }
+];
+
+const CONDITION_STEPS = [
+    { label: 'If Email Opened', iconType: 'condition_email_opened', action_key: 'condition_email_opened', icon: Eye, color: 'text-yellow-500', description: 'Check if email was opened', isCondition: true },
+    { label: 'If Link Clicked', iconType: 'condition_link_clicked', action_key: 'condition_link_clicked', icon: GitBranch, color: 'text-yellow-500', description: 'Check if link was clicked', isCondition: true },
+    { label: 'If Replied', iconType: 'condition_replied', action_key: 'condition_replied', icon: MessageSquare, color: 'text-yellow-500', description: 'Check if user replied', isCondition: true }
+  ];
+
+  // Handlers
+  const handleAudienceSelect = useCallback((audienceId: string) => {
+    setSelectedAudience(audienceId);
+    setShowAudienceDropdown(false);
+  }, []);
+
+  const handleCreateNewAudience = useCallback(() => {
+    console.log('Create new audience clicked');
+    setShowAudienceDropdown(false);
+  }, []);
+
+  const handleIdentitySelect = useCallback((identityId: string) => {
+    setSelectedIdentityDropdown(identityId);
+    setShowIdentityDropdown(false);
+  }, []);
+
+  const handleCreateNewIdentity = useCallback(() => {
+    console.log('Create new identity clicked');
+    setShowIdentityDropdown(false);
+    
+    // Store current campaign URL in localStorage for return redirect
+    const currentUrl = window.location.href;
+    localStorage.setItem('returnToCampaign', currentUrl);
+    
+    // Redirect to identities page
+    router.push('/identities');
+  }, [router]);
+
+  const handleContentClick = useCallback(() => {
+    setShowContentSlider(true);
+  }, []);
+
+  const handleContentModeSelect = useCallback((mode: 'ai' | 'custom') => {
+    setSelectedContentMode(mode);
+    console.log('Selected content mode:', mode);
+  }, []);
+
+  const handleContentContinue = useCallback(() => {
+    if (selectedContentMode) {
+      console.log('Continuing with content mode:', selectedContentMode);
+      if (selectedContentMode === 'custom') {
+        // Generate message cards for Custom Content mode
+        const mockMessageCards = [
+          {
+            id: '1',
+            title: 'LinkedIn Connection Note',
+            channel: 'linkedin' as const,
+            content: '',
+            characterCount: 0,
+            characterLimit: 300
+          },
+          {
+            id: '2',
+            title: 'LinkedIn DM',
+            channel: 'linkedin' as const,
+            content: '',
+            characterCount: 0,
+            characterLimit: 300
+          },
+          {
+            id: '3',
+            title: 'Email Follow-up',
+            channel: 'email' as const,
+            content: '',
+            subject: '',
+            characterCount: 0,
+            characterLimit: 2000
+          },
+          {
+            id: '4',
+            title: 'Voice Message',
+            channel: 'voice' as const,
+            content: '',
+            characterCount: 0,
+            characterLimit: 500
+          }
+        ];
+        setMessageCards(mockMessageCards);
+        setContentStep('editing');
+      } else {
+        // For AI mode, close the slider
+        setShowContentSlider(false);
+      }
+    }
+  }, [selectedContentMode]);
+
+  const handleCloseContentSlider = useCallback(() => {
+    setShowContentSlider(false);
+    setSelectedContentMode(null);
+    setContentStep('selection');
+    setMessageCards([]);
+  }, []);
+
+  const handleMessageContentChange = useCallback((cardId: string, content: string) => {
+    setMessageCards(prev => prev.map(card => 
+      card.id === cardId 
+        ? { ...card, content, characterCount: content.length }
+        : card
+    ));
+    
+    // Simulate autosave
+    setIsSaving(true);
+    setTimeout(() => setIsSaving(false), 1000);
+  }, []);
+
+  const handleMessageSubjectChange = useCallback((cardId: string, subject: string) => {
+    setMessageCards(prev => prev.map(card => 
+      card.id === cardId 
+        ? { ...card, subject }
+        : card
+    ));
+    
+    // Simulate autosave
+    setIsSaving(true);
+    setTimeout(() => setIsSaving(false), 1000);
+  }, []);
+
+  const handleInsertVariable = useCallback((cardId: string, variable: string) => {
+    setMessageCards(prev => prev.map(card => {
+      if (card.id === cardId) {
+        const newContent = card.content + variable;
+        return { 
+          ...card, 
+          content: newContent, 
+          characterCount: newContent.length 
+        };
+      }
+      return card;
+    }));
+  }, []);
+
+  const handleGeneratePreview = useCallback(() => {
+    setShowPreview(true);
+  }, []);
+
+  const getCurrentActions = () => {
+    if (selectedType === 'condition') {
+      return CONDITION_STEPS;
+    }
+    
+    switch (selectedChannel) {
+      case 'linkedin':
+        return LINKEDIN_ACTIONS;
+      case 'email':
+        return EMAIL_ACTIONS;
+      case 'tasks':
+        return TASK_ACTIONS;
+      case 'call':
+        return CALL_ACTIONS;
+      default:
+        return LINKEDIN_ACTIONS;
+    }
+  };
+
+  // Initialize data
+  useEffect(() => {
+    setLoading(false);
+    setCampaignData({ name: 'Test Campaign' });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 size={32} className="text-orange-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading campaign...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 relative">
+      {/* Content Slider Panel */}
+      <AnimatePresence>
+        {showContentSlider && (
+          <motion.div
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-xl z-50"
+          >
+            {/* Panel Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Content</h3>
+                <p className="text-sm text-gray-600">Choose how you want to generate and edit messages</p>
+      </div>
+          <button
+                onClick={handleCloseContentSlider}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          >
+                <X size={20} className="text-gray-500" />
+          </button>
+            </div>
+
+            {/* Panel Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {contentStep === 'selection' ? (
+                <>
+                  {/* Global Notice */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-blue-800 font-medium">
+                      This choice applies to all channels and steps.
+                    </p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      You can switch later, but it will delete existing content.
+                    </p>
+                  </div>
+                </div>
+          </div>
+
+              {/* Content Mode Cards */}
+              <div className="space-y-4">
+                {/* AI Personalisation Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className={`relative bg-white rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                    selectedContentMode === 'ai' 
+                      ? 'border-orange-500 bg-orange-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => handleContentModeSelect('ai')}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Bot size={20} className="text-orange-600" />
+        </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900">AI Personalisation</h3>
+                        <p className="text-sm text-gray-600">Auto-generate one message per channel from LinkedIn profile data.</p>
+                      </div>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      selectedContentMode === 'ai' 
+                        ? 'border-orange-500 bg-orange-500' 
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedContentMode === 'ai' && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900 text-sm">Key Features:</h4>
+                    <ul className="space-y-1 text-sm text-gray-600">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Auto-scrapes profile, bio, company, activity (already implemented)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Generates 1 draft per channel (editable)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Plain text output (no variables)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>LinkedIn: images not supported</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Email: AI output is plain text (you can add images later in editor steps)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Uses GTM form preferences (tone, CTA, length)</span>
+                      </li>
+                    </ul>
+          </div>
+
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">Best for:</span> Speed and scale with minimal manual setup
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Custom Content Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className={`relative bg-white rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                    selectedContentMode === 'custom' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => handleContentModeSelect('custom')}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Edit3 size={20} className="text-blue-600" />
+              </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900">Custom Content</h3>
+                        <p className="text-sm text-gray-600">Write your own messages with variable-driven personalization.</p>
+                      </div>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      selectedContentMode === 'custom' 
+                        ? 'border-blue-500 bg-blue-500' 
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedContentMode === 'custom' && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-900 text-sm">Key Features:</h4>
+                    <ul className="space-y-1 text-sm text-gray-600">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Rich text editor per channel</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Variables available (e.g., {`{{firstName}}`}, {`{{companyName}}`}, etc.)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Email: links + image upload</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>LinkedIn: images disabled; character limits enforced</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle size={14} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Voice: plain text only</span>
+                      </li>
+                    </ul>
+            </div>
+
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">Best for:</span> Full control and tailored messaging
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+                </>
+              ) : (
+                <>
+                  {/* Editing Interface */}
+                  <div className="space-y-4">
+                    {/* Header with Save Status */}
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">Message Editors</h4>
+                      <div className="flex items-center gap-2">
+                        {isSaving ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>Saving...</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-green-600">Saved just now</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Message Cards */}
+                    {messageCards.map((card) => (
+                      <div key={card.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                        {/* Card Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <h5 className="font-semibold text-gray-900">{card.title}</h5>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              card.channel === 'linkedin' ? 'bg-blue-100 text-blue-700' :
+                              card.channel === 'email' ? 'bg-green-100 text-green-700' :
+                              'bg-purple-100 text-purple-700'
+                            }`}>
+                              {card.channel.charAt(0).toUpperCase() + card.channel.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Email Subject Field */}
+                        {card.channel === 'email' && (
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Subject Line
+                            </label>
+                            <input
+                              type="text"
+                              value={card.subject || ''}
+                              onChange={(e) => handleMessageSubjectChange(card.id, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Enter email subject..."
+                            />
+                          </div>
+                        )}
+
+                        {/* Content Editor */}
+                        <div className="mb-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Message Content
+                          </label>
+                          <textarea
+                            value={card.content}
+                            onChange={(e) => handleMessageContentChange(card.id, e.target.value)}
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                              card.characterCount > card.characterLimit 
+                                ? 'border-red-300 bg-red-50' 
+                                : 'border-gray-200'
+                            }`}
+                            rows={4}
+                            placeholder={`Enter your ${card.channel} message...`}
+                            maxLength={card.characterLimit}
+                          />
+                        </div>
+
+                        {/* Character Counter */}
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500">Variables:</span>
+                            <select
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  handleInsertVariable(card.id, e.target.value);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="text-xs border border-gray-200 rounded px-2 py-1"
+                            >
+                              <option value="">Insert variable...</option>
+                              <option value="{{firstName}}">{{firstName}}</option>
+                              <option value="{{lastName}}">{{lastName}}</option>
+                              <option value="{{companyName}}">{{companyName}}</option>
+                              <option value="{{jobTitle}}">{{jobTitle}}</option>
+                              <option value="{{industry}}">{{industry}}</option>
+                            </select>
+                          </div>
+                          <div className={`${
+                            card.characterCount > card.characterLimit 
+                              ? 'text-red-500' 
+                              : card.characterCount > card.characterLimit * 0.9 
+                                ? 'text-yellow-500' 
+                                : 'text-gray-500'
+                          }`}>
+                            {card.characterCount}/{card.characterLimit}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Generate Preview Button */}
+                    <div className="pt-4">
+                      <button
+                        onClick={handleGeneratePreview}
+                        className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                      >
+                        Generate Preview
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+              {/* Continue Button */}
+              {selectedContentMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="pt-4"
+                >
+            <button 
+                    className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                    onClick={handleContentContinue}
+            >
+                    Continue with {selectedContentMode === 'ai' ? 'AI Personalisation' : 'Custom Content'}
+            </button>
+                </motion.div>
+              )}
+          </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <div className={`transition-all duration-300 ${showContentSlider ? 'mr-96' : 'mr-0'}`}>
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          {/* Top Navigation */}
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-6">
+              <h1 className="text-xl font-bold text-[#1E1E1E]">Campaign</h1>
+              <div className="relative">
+                <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search campaigns..."
+                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <Bell size={20} className="text-gray-600" />
+          </button>
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <User size={20} className="text-gray-600" />
+          </button>
+            </div>
+          </div>
+
+          {/* Campaign Header */}
+          <div className="px-6 py-4 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{campaignData?.name || 'Test Campaign'}</h2>
+                <p className="text-gray-600">Design your campaign automation flow</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                  View AI Messages
+          </button>
+                <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                  + Add First Step
+          </button>
+        </div>
+      </div>
+          </div>
+        </div>
+
+        {/* Main Workflow Area */}
+        <div className="flex">
+          {/* Workflow Canvas */}
+          <div className="flex-1 p-6">
+            <div className="max-w-4xl mx-auto">
+              {/* Workflow Canvas Placeholder */}
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 size={32} className="text-gray-400" />
+            </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Workflow Builder</h3>
+                <p className="text-gray-600 mb-6">Design your campaign automation flow by adding steps and connections</p>
+                <button className="px-6 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors">
+                  + Add First Step
+                </button>
+          </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="w-80 bg-white border-l border-gray-200">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-6">Campaign</h3>
+              
+              {/* Workflow Section - Collapsible */}
+              <div className="bg-orange-50 p-4 ml-1 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 size={18} className="text-orange-500" />
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">Workflow</div>
+                      <div className="text-xs text-gray-600">Build your workflow</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsWorkflowExpanded(!isWorkflowExpanded)}
+                    className="p-1 hover:bg-orange-100 rounded-full transition-colors"
+                    title={isWorkflowExpanded ? "Collapse workflow section" : "Expand workflow section"}
+                  >
+                    <ChevronRight
+                      size={16}
+                      className={`text-orange-600 transition-transform ${isWorkflowExpanded ? 'rotate-90' : ''}`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Workflow Content - Collapsible */}
+              {isWorkflowExpanded && (
+                <div className="mt-4 space-y-4">
+                  {/* Filter Pills */}
+                  <div className="flex flex-wrap gap-2">
+                    {['LinkedIn', 'Email', 'Tasks', 'Call'].map((channel) => (
+                      <button
+                        key={channel}
+                        onClick={() => setSelectedChannel(channel.toLowerCase())}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          selectedChannel === channel.toLowerCase()
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {channel}
+                      </button>
+                    ))}
+            </div>
+
+                  {/* Action/Condition Toggle */}
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setSelectedType('action')}
+                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                        selectedType === 'action'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Actions
+                    </button>
+                    <button
+                      onClick={() => setSelectedType('condition')}
+                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                        selectedType === 'condition'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Conditions
+          </button>
+        </div>
+
+                  {/* Action Nodes List - Vertical Stack */}
+                  <div className="space-y-2">
+                    {getCurrentActions().map((action, index) => {
+                      const IconComponent = action.icon;
+                return (
+                  <div
+                    key={action.action_key}
+                          className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer group"
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${action.color.replace('text-', 'bg-').replace('-500', '-100')}`}>
+                            <IconComponent size={16} className={action.color} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 text-sm">{action.label}</div>
+                            <div className="text-xs text-gray-500 truncate">{action.description}</div>
+                        </div>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Plus size={16} className="text-gray-400" />
+                    </div>
+                  </div>
+                );
+              })}
+                  </div>
+            </div>
+          )}
+
+              {/* Audience Section - Expandable with Dropdown */}
+              <div className="border-t border-gray-200 mt-4">
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowAudienceDropdown(!showAudienceDropdown)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                      <Users size={18} className="text-blue-500" />
+                    <div>
+                        <div className="font-semibold text-gray-900 text-sm">Audience</div>
+                        <div className={`text-xs ${selectedAudience ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>
+                          {selectedAudience ? 
+                            (() => {
+                              const audience = audiences.find(a => a.id === selectedAudience);
+                              return audience ? audience.name : 'Target settings';
+                            })() : 
+                            'Target settings'
+                          }
+                    </div>
+                  </div>
+                </div>
+                    <ChevronRight size={16} className={`text-gray-400 transition-transform ${showAudienceDropdown ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {/* Audience Dropdown */}
+                  {showAudienceDropdown && (
+                    <div className="bg-white border-t border-gray-200 p-4">
+                      <div className="space-y-3">
+                        {/* Audience Selector */}
+                        <div className="relative">
+                          <select
+                            value={selectedAudience || ''}
+                            onChange={(e) => handleAudienceSelect(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="">Select an audience</option>
+                            {audiences.map((audience) => (
+                              <option key={audience.id} value={audience.id}>
+                                {audience.name} ({audience.count} contacts)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* No audiences message */}
+                        {!selectedAudience && (
+                          <div className="text-center py-4">
+                            <div className="text-sm text-gray-600 mb-2">No audiences found</div>
+                            <div className="text-xs text-gray-500">Create your first audience</div>
+            </div>
+          )}
+
+                        {/* Selected audience info */}
+                        {selectedAudience && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            {(() => {
+                              const audience = audiences.find(a => a.id === selectedAudience);
+                              return audience ? (
+                                <div>
+                                  <div className="font-medium text-blue-900 text-sm">{audience.name}</div>
+                                  <div className="text-xs text-blue-700 mt-1">{audience.count} contacts</div>
+                                  <div className="text-xs text-blue-600 mt-1">{audience.description}</div>
+        </div>
+                              ) : null;
+                            })()}
+    </div>
+                        )}
+
+                        {/* Create new audience button */}
+                        <button
+                          onClick={handleCreateNewAudience}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <Plus size={16} />
+                          Create new audience
+                        </button>
+                </div>
+              </div>
+                  )}
+            </div>
+          </div>
+
+              {/* Identity Section - Expandable with Dropdown */}
+              <div className="border-t border-gray-200">
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowIdentityDropdown(!showIdentityDropdown)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                <div className="flex items-center gap-3">
+                      <UserCheck size={18} className="text-green-500" />
+                  <div>
+                        <div className="font-semibold text-gray-900 text-sm">Identity</div>
+                        <div className={`text-xs ${selectedIdentityDropdown ? 'text-green-600 font-medium' : 'text-gray-600'}`}>
+                          {selectedIdentityDropdown ? 
+                            (() => {
+                              const identity = identities.find(i => i.id === selectedIdentityDropdown);
+                              return identity ? identity.name : 'Sender profile';
+                            })() : 
+                            'Sender profile'
+                          }
+                  </div>
+                </div>
+              </div>
+                    <ChevronRight size={16} className={`text-gray-400 transition-transform ${showIdentityDropdown ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {/* Identity Dropdown */}
+                  {showIdentityDropdown && (
+                    <div className="bg-white border-t border-gray-200 p-4">
+                      <div className="space-y-3">
+                        {/* Identity Selector */}
+                        <div className="relative">
+                          <select
+                            value={selectedIdentityDropdown || ''}
+                            onChange={(e) => handleIdentitySelect(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          >
+                            <option value="">Select an identity</option>
+                            {identities.map((identity) => (
+                              <option key={identity.id} value={identity.id}>
+                                {identity.name} ({identity.email})
+                              </option>
+                            ))}
+                          </select>
+            </div>
+
+                        {/* No identities message */}
+                        {!selectedIdentityDropdown && (
+                          <div className="text-center py-4">
+                            <div className="text-sm text-gray-600 mb-2">No identities found</div>
+                            <div className="text-xs text-gray-500">Create your first identity</div>
+              </div>
+                        )}
+
+                        {/* Selected identity info */}
+                        {selectedIdentityDropdown && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            {(() => {
+                              const identity = identities.find(i => i.id === selectedIdentityDropdown);
+                              return identity ? (
+                                <div>
+                                  <div className="font-medium text-green-900 text-sm">{identity.name}</div>
+                                  <div className="text-xs text-green-700 mt-1">{identity.email}</div>
+                                  <div className="text-xs text-green-600 mt-1 capitalize">{identity.status}</div>
+              </div>
+                              ) : null;
+                            })()}
+            </div>
+                        )}
+
+                        {/* Create new identity button */}
+                            <button
+                          onClick={handleCreateNewIdentity}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <Plus size={16} />
+                          Create new identity
+                            </button>
+                </div>
+            </div>
+                  )}
+            </div>
+        </div>
+
+              {/* Content Section */}
+              <div className="border-t border-gray-200">
+                <button 
+                  onClick={handleContentClick}
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                    <MessageSquare size={18} className="text-indigo-500" />
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">Content</div>
+                      <div className="text-xs text-gray-600">Content & Messages</div>
+                            </div>
+                            </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Not configured</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                            </div>
+                </button>
+                            </div>
+
+              {/* Launch Section */}
+              <div className="border-t border-gray-200">
+                <button className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Send size={18} className="text-purple-500" />
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">Launch</div>
+                      <div className="text-xs text-gray-600">Start campaign</div>
+                    </div>
+                </div>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </button>
+            </div>
+
+              {/* Settings Section */}
+              <div className="border-t border-gray-200">
+                <button className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Settings size={18} className="text-gray-500" />
+                    <div>
+                      <div className="font-semibold text-gray-900 text-sm">Settings</div>
+                      <div className="text-xs text-gray-600">Campaign config</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900">Message Preview</h3>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className="space-y-6">
+                  {messageCards.map((card, index) => (
+                    <div key={card.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                          {index + 1}
+                        </div>
+                        <h4 className="font-semibold text-gray-900">{card.title}</h4>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          card.channel === 'linkedin' ? 'bg-blue-100 text-blue-700' :
+                          card.channel === 'email' ? 'bg-green-100 text-green-700' :
+                          'bg-purple-100 text-purple-700'
+                        }`}>
+                          {card.channel.charAt(0).toUpperCase() + card.channel.slice(1)}
+                        </span>
+                      </div>
+
+                      {card.channel === 'email' && card.subject && (
+                        <div className="mb-3">
+                          <div className="text-sm font-medium text-gray-700 mb-1">Subject:</div>
+                          <div className="text-gray-900 bg-gray-50 p-2 rounded">
+                            {card.subject.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
+                              const dummyData: Record<string, string> = {
+                                firstName: 'John',
+                                lastName: 'Doe',
+                                companyName: 'ACME Inc.',
+                                jobTitle: 'Marketing Manager',
+                                industry: 'Technology'
+                              };
+                              return dummyData[variable] || match;
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-1">Message:</div>
+                        <div className="text-gray-900 bg-gray-50 p-3 rounded whitespace-pre-wrap">
+                          {card.content ? card.content.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
+                            const dummyData: Record<string, string> = {
+                              firstName: 'John',
+                              lastName: 'Doe',
+                              companyName: 'ACME Inc.',
+                              jobTitle: 'Marketing Manager',
+                              industry: 'Technology'
+                            };
+                            return dummyData[variable] || match;
+                          }) : 'No content yet'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

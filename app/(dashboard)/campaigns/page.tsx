@@ -1,0 +1,528 @@
+'use client';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import {
+    PlusCircle, Search, SlidersHorizontal, ChevronDown, MoreHorizontal, Linkedin, Mail, Phone, Users,
+    Briefcase, CheckCircle, PlayCircle, PauseCircle, ArrowLeft, ArrowRight, LayoutDashboard,
+    Users as UsersIcon, BarChart2, CheckSquare, Target, GitBranch, PhoneCall, Inbox, Database,
+    Contact, UserCheck, Building, Bell, HelpCircle, ChevronLeft, X, Loader2, RefreshCw, AlertCircle
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { campaignService, Campaign as BackendCampaign } from '../../../services/campaignService';
+
+// --- Types & Mock Data ---
+
+type CampaignStatus = 'active' | 'draft' | 'completed' | 'paused';
+type Channel = 'LinkedIn' | 'Email' | 'Voice';
+
+// UI Campaign type that extends backend campaign
+type Campaign = BackendCampaign & {
+  leadsCompleted: {
+    current: number;
+    total: number;
+  };
+  replyRate: number;
+  meetingsBooked: number;
+  channels: Channel[];
+  lastActivity: string;
+};
+
+const MOCK_CAMPAIGNS: Campaign[] = [
+    { id: 'cam_1', name: 'Q4 Enterprise Outreach - US', status: 'active', gtmId: 'gtm_1', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 350, total: 500 }, replyRate: 62, meetingsBooked: 28, channels: ['LinkedIn', 'Email'] as Channel[], lastActivity: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'cam_2', name: 'Mid-Market Expansion - EMEA', status: 'active', gtmId: 'gtm_2', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 120, total: 300 }, replyRate: 45, meetingsBooked: 12, channels: ['LinkedIn', 'Email', 'Voice'] as Channel[], lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'cam_3', name: 'Startup Program Nurture', status: 'completed', gtmId: 'gtm_3', created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 200, total: 200 }, replyRate: 88, meetingsBooked: 45, channels: ['Email'] as Channel[], lastActivity: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'cam_4', name: 'Q1 2026 Planning (Draft)', status: 'draft', gtmId: 'gtm_4', created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 0, total: 1000 }, replyRate: 0, meetingsBooked: 0, channels: ['LinkedIn'] as Channel[], lastActivity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
+];
+
+// --- Reusable Themed Components ---
+
+const StatusBadge = ({ status }: { status: CampaignStatus }) => {
+    const styles = {
+        active: 'bg-blue-100 text-blue-800',
+        completed: 'bg-green-100 text-green-800',
+        draft: 'bg-gray-100 text-gray-700',
+        paused: 'bg-yellow-100 text-yellow-800',
+    };
+    const icon = {
+        active: <PlayCircle size={12} className="text-blue-500" />,
+        completed: <CheckCircle size={12} className="text-green-600" />,
+        draft: <PauseCircle size={12} className="text-gray-500" />,
+        paused: <PauseCircle size={12} className="text-yellow-500" />
+    };
+    const displayText = {
+        active: 'Active',
+        completed: 'Completed',
+        draft: 'Draft',
+        paused: 'Paused'
+    };
+    return <div className={`px-3 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1.5 ${styles[status]}`}>{icon[status]} {displayText[status]}</div>;
+};
+
+const ProgressBar = ({ current, total }: { current: number; total: number }) => {
+    const percentage = total > 0 ? (current / total) * 100 : 0;
+    return (
+        <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
+        </div>
+    );
+};
+
+const KpiTag = ({ rate }: { rate: number }) => {
+    const color = rate > 50 ? 'text-green-600' : rate > 20 ? 'text-orange-600' : 'text-red-600';
+    return <span className={`font-semibold ${color}`}>{rate}%</span>;
+};
+
+const ChannelIcons = ({ channels }: { channels: Channel[] }) => {
+    const channelStyles = {
+        LinkedIn: 'bg-blue-500',
+        Email: 'bg-red-500',
+        Voice: 'bg-green-500',
+    };
+
+    return (
+        <div className="flex -space-x-2">
+            {channels.map(channel => (
+                <div key={channel} className={`w-7 h-7 rounded-full ${channelStyles[channel] || 'bg-gray-700'} text-white flex items-center justify-center border-2 border-white`}>
+                    {channel === 'LinkedIn' && <Linkedin size={14} />}
+                    {channel === 'Email' && <Mail size={14} />}
+                    {channel === 'Voice' && <Phone size={14} />}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// --- Campaign Form Types ---
+interface CampaignFormData {
+    campaignName: string;
+    gtmName: string;
+    mainObjective: string;
+    successMetric: string;
+    target: string;
+    targetAudience: string;
+    painPoint: string;
+    valueProposition: string;
+}
+
+// --- Main Page Component ---
+export default function CampaignListingPage() {
+    const router = useRouter();
+    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [formData, setFormData] = useState<CampaignFormData>({
+        campaignName: '',
+        gtmName: '23 Demo Drive for FinTech',
+        mainObjective: 'Get 10 qualified demos',
+        successMetric: 'Meetings Booked',
+        target: '10',
+        targetAudience: 'Confirmed ICP',
+        painPoint: 'Difficulty managing compliance reporting',
+        valueProposition: 'We automate compliance reporting, saving teams hours and reducing risk.'
+    });
+
+    // Load campaigns on component mount
+    useEffect(() => {
+        loadCampaigns();
+    }, []);
+
+    const loadCampaigns = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const backendCampaigns = await campaignService.listCampaigns();
+            
+            if (backendCampaigns && backendCampaigns.length > 0) {
+                // Transform backend campaigns to UI format
+                const transformedCampaigns: Campaign[] = backendCampaigns.map((backendCampaign: BackendCampaign) => ({
+                    ...backendCampaign,
+                    status: (backendCampaign.status.charAt(0).toUpperCase() + backendCampaign.status.slice(1)) as CampaignStatus,
+                    leadsCompleted: backendCampaign.leadsCompleted || { current: 0, total: 0 },
+                    replyRate: backendCampaign.replyRate || 0,
+                    meetingsBooked: backendCampaign.meetingsBooked || 0,
+                    channels: (backendCampaign.channels || ['LinkedIn']) as Channel[],
+                    lastActivity: backendCampaign.lastActivity || backendCampaign.updated_at
+                }));
+                
+                setCampaigns(transformedCampaigns);
+            } else {
+                // Fallback to mock data if no campaigns exist
+                setCampaigns(MOCK_CAMPAIGNS);
+            }
+        } catch (err) {
+            console.error('Error loading campaigns:', err);
+            // Fallback to mock data on error
+            setCampaigns(MOCK_CAMPAIGNS);
+            setError('Failed to load campaigns from server. Showing sample data.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleInputChange = (field: keyof CampaignFormData, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleCreateCampaign = async () => {
+        try {
+            setIsCreating(true);
+            
+            // Create campaign via API
+            const newCampaign = await campaignService.createCampaign({
+                name: formData.campaignName,
+                gtmId: formData.gtmName, // This should be the actual GTM ID
+                description: formData.valueProposition
+            });
+            
+            // Close modal
+            setIsModalOpen(false);
+            
+            // Refresh campaigns list
+            await loadCampaigns();
+            
+            // Navigate to campaign creation page
+            router.push(`/campaigns/${newCampaign.id}/new`);
+            
+            // Reset form
+            setFormData({
+                campaignName: '',
+                gtmName: '23 Demo Drive for FinTech',
+                mainObjective: 'Get 10 qualified demos',
+                successMetric: 'Meetings Booked',
+                target: '10',
+                targetAudience: 'Confirmed ICP',
+                painPoint: 'Difficulty managing compliance reporting',
+                valueProposition: 'We automate compliance reporting, saving teams hours and reducing risk.'
+            });
+        } catch (error) {
+            console.error('Error creating campaign:', error);
+            setError('Failed to create campaign. Please try again.');
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    return (
+        <div className="max-w-7xl mx-auto">
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ duration: 0.5 }}
+            >
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">
+                            <SlidersHorizontal size={14} /> Status <ChevronDown size={16} />
+                        </button>
+                        <button 
+                            onClick={loadCampaigns}
+                            disabled={loading}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                        >
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                            Refresh
+                        </button>
+                    </div>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        disabled={isCreating}
+                        className="h-10 px-4 flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-xl shadow-md hover:opacity-95 disabled:opacity-50"
+                    >
+                        {isCreating ? (
+                            <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                            <PlusCircle size={18} />
+                        )}
+                        <span className="hidden sm:inline">
+                            {isCreating ? 'Creating...' : 'Create Campaign'}
+                        </span>
+                    </button>
+                </div>
+            </motion.div>
+
+            <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: 0.2, duration: 0.5 }}
+            >
+                {/* Error State */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+                        <AlertCircle size={20} className="text-red-500" />
+                        <span className="text-red-700">{error}</span>
+                        <button 
+                            onClick={() => setError(null)}
+                            className="ml-auto text-red-500 hover:text-red-700"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Loading State */}
+                {loading && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+                        <Loader2 size={32} className="animate-spin text-[#FF6B2C] mx-auto mb-4" />
+                        <p className="text-gray-600">Loading campaigns...</p>
+                    </div>
+                )}
+
+                {/* Campaigns Table */}
+                {!loading && campaigns.length > 0 && (
+                    <>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <table className="w-full">
+                                <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                                    <tr>
+                                        <th className="p-4 w-10">
+                                            <input type="checkbox" className="rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
+                                        </th>
+                                        {['Name', 'Status', 'Leads Completed', 'Reply Rate', 'Meetings', 'Channels', 'Last Activity', ''].map(h => 
+                                            <th key={h} className="p-4 text-left font-semibold">{h}</th>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <motion.tbody 
+                                    variants={{ show: { transition: { staggerChildren: 0.05 } } }} 
+                                    initial="hidden" 
+                                    animate="show"
+                                >
+                                    {campaigns.map(campaign => (
+                                        <motion.tr 
+                                            key={campaign.id} 
+                                            className="border-b border-gray-100 last:border-b-0 hover:bg-orange-50/50 transition-all duration-200 cursor-pointer group" 
+                                            variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+                                            onClick={() => router.push(`/campaigns/${campaign.id}/new/workflow`)}
+                                            title="Click to open campaign workflow"
+                                        >
+                                            <td className="p-4">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-500" 
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </td>
+                                            <td className="p-4 font-semibold text-[#1E1E1E] group-hover:text-orange-600 transition-colors">
+                                                {campaign.name}
+                                                <span className="ml-2 text-xs text-gray-400 group-hover:text-orange-500">→</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <StatusBadge status={campaign.status} />
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="w-24">
+                                                    <ProgressBar current={campaign.leadsCompleted?.current || 0} total={campaign.leadsCompleted?.total || 0} />
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <KpiTag rate={campaign.replyRate || 0} />
+                                            </td>
+                                            <td className="p-4 font-semibold">{campaign.meetingsBooked || 0}</td>
+                                            <td className="p-4">
+                                                <ChannelIcons channels={campaign.channels || ['LinkedIn']} />
+                                            </td>
+                                            <td className="p-4 text-sm text-gray-500">
+                                                {campaign.lastActivity ? formatDistanceToNow(new Date(campaign.lastActivity), { addSuffix: true }) : 'No activity'}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <button 
+                                                    className="text-gray-400 hover:text-gray-700"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <MoreHorizontal size={20}/>
+                                                </button>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </motion.tbody>
+                            </table>
+                        </div>
+                        <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
+                            <p>Showing 1-4 of 4 results</p>
+                            <div className="flex items-center gap-2">
+                                <button className="p-2 hover:bg-gray-200 rounded-md disabled:opacity-50" disabled>
+                                    <ArrowLeft size={16}/>
+                                </button>
+                                <span className="px-3 py-1 bg-orange-100 text-orange-700 font-bold rounded-md">1</span>
+                                <button className="p-2 hover:bg-gray-200 rounded-md disabled:opacity-50" disabled>
+                                    <ArrowRight size={16}/>
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* Empty State */}
+                {!loading && campaigns.length === 0 && !error && (
+                    <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
+                        <div className="max-w-md mx-auto">
+                            <Briefcase size={64} className="text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">No campaigns yet</h3>
+                            <p className="text-gray-600 mb-6">Create your first campaign to start reaching out to prospects.</p>
+                            <button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="px-6 py-3 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-lg shadow-md hover:opacity-95"
+                            >
+                                <PlusCircle size={20} className="inline mr-2" />
+                                Create Your First Campaign
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </motion.div>
+
+            {/* Start Your Campaign Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-2 sm:p-4">
+                    <motion.div 
+                        className="bg-white w-full max-w-md sm:max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl"
+                        initial={{ scale: 0.95, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.95, opacity: 0 }}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
+                            <h2 className="text-xl sm:text-2xl font-bold text-[#FF6B2C]">Start Your Campaign</h2>
+                            <button 
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X size={18} className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                            {/* Campaign Name */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Campaign Name</label>
+                                <input
+                                    type="text"
+                                    value={formData.campaignName}
+                                    onChange={(e) => handleInputChange('campaignName', e.target.value)}
+                                    placeholder="Your Name"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                />
+                            </div>
+
+                            {/* GTM Name */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">GTM Name</label>
+                                <select
+                                    value={formData.gtmName}
+                                    onChange={(e) => handleInputChange('gtmName', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                >
+                                    <option value="23 Demo Drive for FinTech">23 Demo Drive for FinTech</option>
+                                    <option value="Enterprise Sales Outreach">Enterprise Sales Outreach</option>
+                                    <option value="Mid-Market Expansion">Mid-Market Expansion</option>
+                                </select>
+                            </div>
+
+                            {/* Main Objective */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">MY MAIN OBJECTIVE IS</label>
+                                <input
+                                    type="text"
+                                    value={formData.mainObjective}
+                                    onChange={(e) => handleInputChange('mainObjective', e.target.value)}
+                                    placeholder="Get 10 qualified demos"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                />
+                            </div>
+
+                            {/* Success Metric */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">I'LL MEASURE SUCCESS BY TRACKING</label>
+                                <select
+                                    value={formData.successMetric}
+                                    onChange={(e) => handleInputChange('successMetric', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                >
+                                    <option value="Meetings Booked">Meetings Booked</option>
+                                    <option value="Reply Rate">Reply Rate</option>
+                                    <option value="Leads Generated">Leads Generated</option>
+                                    <option value="Revenue Generated">Revenue Generated</option>
+                                </select>
+                            </div>
+
+                            {/* Target */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">MY TARGET IS</label>
+                                <input
+                                    type="text"
+                                    value={formData.target}
+                                    onChange={(e) => handleInputChange('target', e.target.value)}
+                                    placeholder="10"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                />
+                            </div>
+
+                            {/* Target Audience */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">TARGET AUDIENCE FOR THIS GOAL</label>
+                                <select
+                                    value={formData.targetAudience}
+                                    onChange={(e) => handleInputChange('targetAudience', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                >
+                                    <option value="Confirmed ICP">Confirmed ICP</option>
+                                    <option value="Enterprise Prospects">Enterprise Prospects</option>
+                                    <option value="Mid-Market Companies">Mid-Market Companies</option>
+                                    <option value="Startups">Startups</option>
+                                </select>
+                            </div>
+
+                            {/* Pain Point */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">KEY CUSTOMER PAIN POINT WE ADDRESS</label>
+                                <input
+                                    type="text"
+                                    value={formData.painPoint}
+                                    onChange={(e) => handleInputChange('painPoint', e.target.value)}
+                                    placeholder="Difficulty managing compliance reporting"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
+                                />
+                            </div>
+
+                            {/* Value Proposition */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">OUR CORE VALUE PROPOSITION (1-2 SENTENCES)</label>
+                                <textarea
+                                    value={formData.valueProposition}
+                                    onChange={(e) => handleInputChange('valueProposition', e.target.value)}
+                                    placeholder="We automate compliance reporting, saving teams hours and reducing risk."
+                                    rows={2}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent resize-none text-sm"
+                                />
+                            </div>
+
+                            {/* AI Superpower Info */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p className="text-xs text-blue-800">
+                                    <strong>AI SUPERPOWER:</strong> PROVIDING THE PAIN POINT AND VALUE PROP HERE HELPS OUR AI GENERATE MUCH MORE RELEVANT AND EFFECTIVE OUTREACH MESSAGE SUGGESTIONS FOR YOUR CAMPAIGNS LATER!
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex justify-end p-3 sm:p-4 border-t border-gray-200">
+                            <button
+                                onClick={handleCreateCampaign}
+                                disabled={isCreating || !formData.campaignName.trim()}
+                                className="px-6 py-2 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-lg shadow-md hover:opacity-95 transition-opacity text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {isCreating && <Loader2 size={16} className="animate-spin" />}
+                                {isCreating ? 'Creating...' : 'Create Campaign'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </div>
+    );
+}
