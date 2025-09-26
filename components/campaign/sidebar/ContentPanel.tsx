@@ -21,3 +21,4 @@ const ContentPanel: React.FC<ContentPanelProps> = ({ onConfigure }) => (
 export default ContentPanel;
 
 
+

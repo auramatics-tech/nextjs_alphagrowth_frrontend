@@ -246,3 +246,4 @@ The Next.js frontend now has **full functionality** matching the frontend_old im
 **Next Step**: Test the implementation by navigating to a campaign workflow page and verifying all features work correctly.
 
 
+
