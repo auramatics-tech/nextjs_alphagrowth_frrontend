@@ -247,3 +247,5 @@ The Next.js frontend now has **full functionality** matching the frontend_old im
 
 
 
+
+

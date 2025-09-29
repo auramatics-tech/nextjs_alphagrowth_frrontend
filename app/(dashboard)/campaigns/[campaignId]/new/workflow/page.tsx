@@ -6,18 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import CampaignSettings from '@/components/campaign/CampaignSettings';
 import CampaignRightSidebar from '@/components/campaign/CampaignRightSidebar';
-import CSVImportModal from '@/components/campaign/CSVImportModal';
-import ImportProgress from '@/components/campaign/ImportProgress';
+ 
 import CrmImportInfo from '@/components/campaign/CrmImportInfo';
-import Drawer from '@/components/ui/Drawer';
-import AIPersonalisationEditor from '@/components/campaign/AIPersonalisationEditor';
-import CustomContentEditor from '@/components/campaign/CustomContentEditor';
-import NodeEditor from '@/components/campaign/NodeEditor';
+ 
 import ReactFlowWrapper, { ReactFlowWrapperRef } from '@/components/campaign/ReactFlowWrapper';
 import { useImport } from '@/contexts/ImportContext';
 import ReusableSelect from '@/components/ui/ReusableSelect';
 import ReusableButton from '@/components/ui/ReusableButton';
-import ReusableForm from '@/components/ui/ReusableForm';
+ 
 import {
   MessageSquare, Eye, ThumbsUp, Clipboard,
   User, Settings, Users, Send,
@@ -136,6 +132,8 @@ export default function WorkflowPage() {
 
   // React Flow handlers
   const handleNodeClick = useCallback((nodeId: string, nodeData: any) => {
+    console.log("handleNodeClick");
+
     // Open node editor drawer
     setSelectedNodeForEdit({
       id: nodeId,
@@ -448,8 +446,8 @@ export default function WorkflowPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                   className={`relative bg-white rounded-xl border-2 p-4 cursor-pointer transition-all ${selectedContentMode === 'ai'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 hover:border-gray-300'
                     }`}
                   onClick={() => handleContentModeSelect('ai')}
                 >
@@ -465,8 +463,8 @@ export default function WorkflowPage() {
                       </div>
                     </div>
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedContentMode === 'ai'
-                        ? 'border-orange-500 btn-primary'
-                        : 'border-gray-300'
+                      ? 'border-orange-500 btn-primary'
+                      : 'border-gray-300'
                       }`}>
                       {selectedContentMode === 'ai' && (
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
@@ -518,8 +516,8 @@ export default function WorkflowPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                   className={`relative bg-white rounded-xl border-2 p-4 cursor-pointer transition-all ${selectedContentMode === 'custom'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
                     }`}
                   onClick={() => handleContentModeSelect('custom')}
                 >
@@ -535,8 +533,8 @@ export default function WorkflowPage() {
                       </div>
                     </div>
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedContentMode === 'custom'
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-gray-300'
+                      ? 'border-blue-500 bg-blue-500'
+                      : 'border-gray-300'
                       }`}>
                       {selectedContentMode === 'custom' && (
                         <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
@@ -583,8 +581,8 @@ export default function WorkflowPage() {
                       disabled={selectedContentMode !== 'custom'}
                       onClick={handleContentContinue}
                       className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-300 ${selectedContentMode === 'custom'
-                          ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer opacity-100'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                        ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer opacity-100'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
                         }`}
                     >
                       Continue
@@ -941,8 +939,8 @@ export default function WorkflowPage() {
                   onClick={handleLinkedInImportBack}
                   disabled={linkedInImportStep === 1}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${linkedInImportStep === 1
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-600 hover:bg-gray-100'
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
                     }`}
                 >
                   <ArrowLeft size={16} />
@@ -954,8 +952,8 @@ export default function WorkflowPage() {
                     <div
                       key={step}
                       className={`w-2 h-2 rounded-full transition-all ${step === linkedInImportStep
-                          ? 'btn-primary'
-                          : 'bg-gray-300'
+                        ? 'btn-primary'
+                        : 'bg-gray-300'
                         }`}
                     />
                   ))}
@@ -964,8 +962,8 @@ export default function WorkflowPage() {
                 <button
                   onClick={linkedInImportStep === 3 ? handleImportPeopleComplete : handleLinkedInImportNext}
                   className={`px-6 py-2 rounded-lg font-medium transition-all ${linkedInImportStep === 3
-                      ? 'bg-green-500 text-white hover:bg-green-600'
-                      : 'btn-primary'
+                    ? 'bg-green-500 text-white hover:bg-green-600'
+                    : 'btn-primary'
                     }`}
                 >
                   {linkedInImportStep === 3 ? 'Complete' : 'Next'}

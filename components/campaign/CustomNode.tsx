@@ -92,8 +92,8 @@ const CustomNode = memo(function CustomNode({ id, data, onNodeClick, onWaitTimeC
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [count, setCount] = useState(1);
   const [showWaitPopup, setShowWaitPopup] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isDurationEditing, setIsDurationEditing] = useState(false);
+      
 
   const toggleWaitPopup = () => setShowWaitPopup(prev => !prev);
 
@@ -107,12 +107,17 @@ const CustomNode = memo(function CustomNode({ id, data, onNodeClick, onWaitTimeC
   }, [data.wait_time, data.duration]);
 
   const handleIncrement = () => {
+
+    
     const newCount = count + 1;
     setCount(newCount);
+        // data.onWaitTimeChange?.(id, newCount * 1440); 
     if (data.wait_time !== undefined) {
-      onWaitTimeChange?.(id, newCount * 1440); // convert to minutes for wait nodes
+          console.log("fkljk");
+      data.onWaitTimeChange?.(id, newCount * 1440); // convert to minutes for wait nodes
     } else {
-      onDurationChange?.(id, newCount); // use days for other nodes
+          console.log("fkljks");
+      data.onWaitTimeChange?.(id, newCount); // use days for other nodes
     }
   };
 
@@ -279,13 +284,25 @@ const CustomNode = memo(function CustomNode({ id, data, onNodeClick, onWaitTimeC
           border-color: #ef4444; /* Red for No path */
         }
       `}</style>
-      <div className="workflow-node-wrapper">
+      <div className="workflow-node-wrapper"
+        onDragOver={(e) => {
+              console.log("CustomNode onDragOver called for node:", id);
+
+          onNodeDragOver?.(e, id)}}
+      >
       {/* 1. The Node Card Itself */}
       <div 
         className={`relative w-64 bg-white border-2 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow ${getNodeColor()}`}
         onClick={() => onNodeClick?.(id, { iconType: data.iconType, type: data.type, label: data.label, subtitle: data.subtitle })}
-        onDragOver={(e) => onNodeDragOver?.(e, id)}
-        onDrop={(e) => onNodeDrop?.(e, id)}
+        onDragOver={(e) => {
+              console.log("CustomNode onDragOver called for node:", id);
+
+          onNodeDragOver?.(e, id)}}
+        onDrop={(e) =>{
+
+            console.log("CustomNode onDrop called for node:", id);
+onNodeDrop?.(e, id)
+        } }
         role="button"
         tabIndex={0}
         aria-label={`${data.label} node - ${data.subtitle}`}
@@ -470,6 +487,8 @@ const CustomNode = memo(function CustomNode({ id, data, onNodeClick, onWaitTimeC
           type="target"
           position={Position.Top}
           className="w-3 h-3 bg-blue-500"
+          
+
         />
         {!data.isCondition && (
           <Handle
