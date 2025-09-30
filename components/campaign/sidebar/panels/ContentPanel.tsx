@@ -92,9 +92,8 @@ const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId }) => {
                 <div className="space-y-3">
                   <button
                     onClick={() => setSelectedMode('ai')}
-                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-                      selectedMode === 'ai' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${selectedMode === 'ai' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -109,9 +108,8 @@ const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId }) => {
 
                   <button
                     onClick={() => setSelectedMode('manual')}
-                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-                      selectedMode === 'manual' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${selectedMode === 'manual' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">

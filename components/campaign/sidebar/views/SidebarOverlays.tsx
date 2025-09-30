@@ -9,8 +9,7 @@ interface SidebarOverlaysProps {
   currentView: string;
   onBackToMain: () => void;
   onAudienceCreationComplete: (audienceData?: any) => void;
-  selectedNodeForEdit: any;
-  onCloseDrawer: () => void;
+ 
 
 }
 
@@ -18,8 +17,7 @@ const SidebarOverlays: React.FC<SidebarOverlaysProps> = ({
   currentView,
   onBackToMain,
   onAudienceCreationComplete,
-  selectedNodeForEdit,
-  onCloseDrawer,
+ 
 
 }) => {
   if (currentView === 'audience-creation') {
@@ -32,13 +30,7 @@ const SidebarOverlays: React.FC<SidebarOverlaysProps> = ({
     );
   }
 
-  if (currentView === 'node-editor') {
-    return (
-      <Drawer isOpen={true} onClose={onCloseDrawer} title="Node Editor">
-        <NodeEditor nodeData={selectedNodeForEdit} onClose={onCloseDrawer} />
-      </Drawer>
-    );
-  }
+ 
 
   return null;
 };

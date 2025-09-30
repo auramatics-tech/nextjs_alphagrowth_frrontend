@@ -160,8 +160,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   // Create handleWaitTimeChange after data is loaded (like frontend_old)
   const handleWaitTimeChange = (nodeId: string, waitTimeInMinutes: number) => {
-    console.log("edges-------", edges, nodes);
-
+ 
     // setNodes((prevNodes) => {
     const updatedNodes = nodes.map((node) => {
       if (node.id === nodeId) {

@@ -53,3 +53,4 @@ const ConeFunnel: React.FC<ConeFunnelProps> = ({ values }) => {
 };
 
 export default ConeFunnel;
+

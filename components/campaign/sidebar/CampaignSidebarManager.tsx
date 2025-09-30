@@ -5,10 +5,7 @@ import { CheckCircle, ChevronRight, Minimize2, Maximize2 } from 'lucide-react';
 import { CAMPAIGN_STEPS } from '@/constants/campaign';
 import { useAudiences } from '@/hooks/useAudiences';
 import MainSidebarContent from './panels/MainSidebarContent';
-import SidebarOverlays from './views/SidebarOverlays';
-import { useIdentities } from '@/hooks/useIdentities';
-import { campaignService } from '@/services/campaignService';
-
+import AudienceCreationManager from '../audience/AudienceCreationManager';
 
 
 interface CampaignSidebarManagerProps {
@@ -20,7 +17,7 @@ type SidebarView = 'main' | 'audience-creation' | 'content-slider' | 'ai-editor'
 const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
   campaignId,
 }) => {
- 
+
   const [isFocusMode, setIsFocusMode] = useState(false);
 
   // Campaign steps state
@@ -40,27 +37,7 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
 
 
   } = useAudiences({ campaignId, autoFetch: true });
- 
-  const { identities, selectIdentity, attachIdentityToCampaign } = useIdentities({ autoFetch: true, linkedInOnly: true, campaignId });
-  const [selectedIdentityDropdown, setSelectedIdentityDropdown] = useState<string | null>(null);
-  const [attachedIdentities, setAttachedIdentities] = useState<any[]>([]);
- 
-  const loadAttachedIdentities = useCallback(async () => {
-    try {
-      const data = await campaignService.getCampaignFlow(campaignId);
-      const items = data?.data?.identities || [];
-      setAttachedIdentities(items);
-    } catch (e) {
-      // noop
-    }
-  }, [campaignId]);
 
-  React.useEffect(() => {
-    loadAttachedIdentities();
-  }, [loadAttachedIdentities]);
-
-
-  const [selectedNodeForEdit, setSelectedNodeForEdit] = useState<any>(null);
 
 
 
@@ -69,74 +46,31 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
   const handleAudienceSelect = useCallback(async (id: string) => {
     const success = await selectAudienceAPI(id);
     if (success) {
-      
+
       console.log('Audience selection completed successfully');
     }
   }, [selectAudienceAPI]);
+
+
 
   const handleCreateNewAudience = useCallback(() => {
     setCurrentView('audience-creation');
   }, []);
 
+
   const handleAudienceCreationComplete = useCallback(async (audienceData?: any) => {
-    console.log('Audience created:', audienceData);
-    setCurrentView('main');
-    // Refresh audience list to include the new audience
     await refreshAudiences();
   }, [refreshAudiences]);
 
-  // Identity handlers
-  const handleIdentitySelect = useCallback(async (id: string) => {
-    setSelectedIdentityDropdown(id);
-    selectIdentity(id);
-    // Attach to campaign like frontend_old
-    const ok = await attachIdentityToCampaign(id);
-    if (ok) {
-      // refresh campaign identities list
-      loadAttachedIdentities();
-    }
-  }, [selectIdentity, attachIdentityToCampaign, loadAttachedIdentities]);
-
-  const handleCreateNewIdentity = useCallback(() => {
-    console.log('Create new identity');
-  }, []);
-
-  // Content handlers
-  const handleContentClick = useCallback(() => {
-    setCurrentView('content-slider');
-  }, []);
 
 
 
-
-
-  // Node handlers
-  const handleNodeClick = useCallback((nodeId: string, nodeData: any) => {
-    setSelectedNodeForEdit({
-      id: nodeId,
-      type: nodeData.type,
-      label: nodeData.label,
-      subtitle: nodeData.subtitle,
-      iconType: nodeData.iconType
-    });
-    setCurrentView('node-editor');
-
-  }, []);
-
-useEffect(()=>{
-console.log("currentView---",currentView);
-
-},[currentView])
-
-  // View navigation
   const handleBackToMain = useCallback(() => {
     setCurrentView('main');
   }, []);
 
-  const handleCloseDrawer = useCallback(() => {
-    setCurrentView('main');
-    setSelectedNodeForEdit(null);
-  }, []);
+
+
 
 
 
@@ -260,14 +194,6 @@ console.log("currentView---",currentView);
                             selectedAudience={selectedAudience}
                             onAudienceSelect={handleAudienceSelect}
                             onCreateNewAudience={handleCreateNewAudience}
-                            identities={identities}
-                            attachedIdentities={attachedIdentities}
-                            selectedIdentityDropdown={selectedIdentityDropdown}
-                            onIdentitySelect={handleIdentitySelect}
-                            onCreateNewIdentity={handleCreateNewIdentity}
-                            onContentClick={handleContentClick}
-                            onNodeClick={handleNodeClick}
-
                             audienceLoading={audienceLoading}
                             audienceError={audienceError}
                             campaignId={campaignId}
@@ -301,15 +227,17 @@ console.log("currentView---",currentView);
         )}
       </div>
 
-      {/* Overlay Views */}
-      <SidebarOverlays
-        currentView={currentView}
-        onBackToMain={handleBackToMain}
-        onAudienceCreationComplete={handleAudienceCreationComplete}
-        selectedNodeForEdit={selectedNodeForEdit}
-        onCloseDrawer={handleCloseDrawer}
+      {currentView === 'audience-creation' &&
+        <AudienceCreationManager
+          isOpen={true}
+          onClose={handleBackToMain}
+          onComplete={handleAudienceCreationComplete}
+        />
+      }
 
-      />
+
+
+     
     </>
   );
 };

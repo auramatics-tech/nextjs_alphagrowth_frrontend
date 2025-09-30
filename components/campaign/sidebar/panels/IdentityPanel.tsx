@@ -1,57 +1,78 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import ReusableSelect from '@/components/ui/ReusableSelect';
 import ReusableButton from '@/components/ui/ReusableButton';
 import { Plus } from 'lucide-react';
+import campaignService from '@/services/campaignService';
+import { useParams } from 'next/navigation';
+import useIdentities from '@/hooks/useIdentities';
 
 interface IdentityPanelProps {
-  identities: any[];
-  selectedIdentityId: string | null;
-  onIdentitySelect: (id: string) => void;
-  onCreateNewIdentity: () => void;
-  attachedIdentities?: any[];
+
+
+
+
 }
 
 const IdentityPanel: React.FC<IdentityPanelProps> = ({
-  identities,
-  selectedIdentityId,
-  onIdentitySelect,
-  onCreateNewIdentity,
-  attachedIdentities,
+
+
+
+
 }) => {
+  const params = useParams();
+  const campaignId = params.campaignId as string;
+  const { identities, selectIdentity, attachIdentityToCampaign } = useIdentities({ autoFetch: true, linkedInOnly: true, campaignId });
+
+
+  const [selectedIdentityDropdown, setSelectedIdentityDropdown] = useState<string | null>(null);
+
+
+  const [attachedIdentities, setAttachedIdentities] = useState<any[]>([]);
+  const loadAttachedIdentities = useCallback(async () => {
+    try {
+      const data = await campaignService.getCampaignFlow(campaignId);
+      const items = data?.data?.identities || [];
+      setAttachedIdentities(items);
+    } catch (e) {
+      // noop
+    }
+  }, [campaignId]);
+
+  React.useEffect(() => {
+    loadAttachedIdentities();
+  }, [loadAttachedIdentities]);
+
+  const handleIdentitySelect = useCallback(async (id: string) => {
+
+    // Attach to campaign like frontend_old
+    const ok = await attachIdentityToCampaign(id);
+    if (ok) {
+      // refresh campaign identities list
+      loadAttachedIdentities();
+    }
+  }, [selectIdentity, attachIdentityToCampaign]);
+
   return (
     <div className="mt-4 space-y-3">
       <ReusableSelect
         options={identities}
-        value={selectedIdentityId}
-        onChange={onIdentitySelect}
+        value={selectedIdentityDropdown}
+        onChange={handleIdentitySelect}
         placeholder="Select an identity"
         showEmail={true}
         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
       />
 
-      {!selectedIdentityId && (
+      {identities.length == 0 && (
         <div className="text-center py-4">
           <div className="text-sm text-gray-600 mb-2">No identities found</div>
           <div className="text-xs text-gray-500">Create your first identity</div>
         </div>
       )}
 
-      {selectedIdentityId && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          {(() => {
-            const identity = identities.find((i: any) => i.id === selectedIdentityId);
-            return identity ? (
-              <div>
-                <div className="font-medium text-green-900 text-sm">{identity.name}</div>
-                <div className="text-xs text-green-700 mt-1">{identity.email}</div>
-                <div className="text-xs text-green-600 mt-1 capitalize">{identity.status}</div>
-              </div>
-            ) : null;
-          })()}
-        </div>
-      )}
+
 
       {attachedIdentities && attachedIdentities.length > 0 && (
         <div className="mt-2">
@@ -81,14 +102,7 @@ const IdentityPanel: React.FC<IdentityPanelProps> = ({
         </div>
       )}
 
-      <ReusableButton
-        onClick={onCreateNewIdentity}
-        variant="secondary"
-        icon={Plus}
-        className="w-full"
-      >
-        Create new identity
-      </ReusableButton>
+
     </div>
   );
 };

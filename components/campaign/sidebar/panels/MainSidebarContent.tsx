@@ -5,8 +5,8 @@ import AudiencePanel from './AudiencePanel';
 import IdentityPanel from './IdentityPanel';
 import ContentPanel from './ContentPanel';
 import SettingsPanel from './SettingsPanel';
-import ReusableButton from '@/components/ui/ReusableButton';
-import { Plus } from 'lucide-react';
+
+import LaunchPanel from './LaunchPanel';
 
 interface MainSidebarContentProps {
   activeStep: string;
@@ -15,14 +15,8 @@ interface MainSidebarContentProps {
   selectedAudience: any | null;
   onAudienceSelect: (id: string) => void;
   onCreateNewAudience: () => void;
-  identities: any[];
-  attachedIdentities?: any[];
-  selectedIdentityDropdown: string | null;
-  onIdentitySelect: (id: string) => void;
-  onCreateNewIdentity: () => void;
-  onContentClick: () => void; // kept for compatibility (no longer used)
-  onNodeClick: (nodeId: string, nodeData: any) => void;
  
+  
   audienceLoading?: boolean;
   audienceError?: string | null;
   campaignId: string;
@@ -34,29 +28,14 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
   selectedAudience,
   onAudienceSelect,
   onCreateNewAudience,
-  identities,
-  attachedIdentities,
-  selectedIdentityDropdown,
-  onIdentitySelect,
-  onCreateNewIdentity,
-  onContentClick,
-  onNodeClick,
+ 
+ 
  
   audienceLoading,
   audienceError,
   campaignId,
 }) => {
-  const LaunchContent = () => (
-    <div className="mt-4 space-y-3">
-      <div className="text-center py-4">
-        <div className="text-sm text-gray-600 mb-2">Campaign not ready to launch</div>
-        <div className="text-xs text-gray-500">Complete all previous steps to launch</div>
-      </div>
-      <ReusableButton disabled variant="secondary" icon={Plus} className="w-full">
-        Launch Campaign
-      </ReusableButton>
-    </div>
-  );
+
 
   switch (activeStep) {
     case 'workflow':
@@ -82,17 +61,14 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
     case 'identity':
       return (
         <IdentityPanel
-          identities={identities}
-          selectedIdentityId={selectedIdentityDropdown}
-          onIdentitySelect={onIdentitySelect}
-          onCreateNewIdentity={onCreateNewIdentity}
-          attachedIdentities={attachedIdentities}
+        
+    
         />
       );
     case 'content':
       return <ContentPanel campaignId={campaignId} />;
     case 'launch':
-      return <LaunchContent />;
+      return <LaunchPanel />;
     case 'settings':
       return <SettingsPanel campaignId={campaignId} />;
     default:
