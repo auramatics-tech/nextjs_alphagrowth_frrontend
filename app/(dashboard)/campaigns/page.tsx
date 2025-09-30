@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { campaignService, Campaign as BackendCampaign } from '../../../services/campaignService';
+import { CreateCampaignModal } from '../../../components/campaign';
+import { useCreateCampaignModal } from '../../../hooks/useCreateCampaignModal';
 
 // --- Types & Mock Data ---
 
@@ -94,17 +96,6 @@ const ChannelIcons = ({ channels }: { channels: Channel[] }) => {
     );
 };
 
-// --- Campaign Form Types ---
-interface CampaignFormData {
-    campaignName: string;
-    gtmName: string;
-    mainObjective: string;
-    successMetric: string;
-    target: string;
-    targetAudience: string;
-    painPoint: string;
-    valueProposition: string;
-}
 
 // --- Main Page Component ---
 export default function CampaignListingPage() {
@@ -112,18 +103,9 @@ export default function CampaignListingPage() {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
-    const [formData, setFormData] = useState<CampaignFormData>({
-        campaignName: '',
-        gtmName: '23 Demo Drive for FinTech',
-        mainObjective: 'Get 10 qualified demos',
-        successMetric: 'Meetings Booked',
-        target: '10',
-        targetAudience: 'Confirmed ICP',
-        painPoint: 'Difficulty managing compliance reporting',
-        valueProposition: 'We automate compliance reporting, saving teams hours and reducing risk.'
-    });
+    
+    // Use the custom hook for modal management
+    const { isModalOpen, openModal, closeModal } = useCreateCampaignModal();
 
     // Load campaigns on component mount
     useEffect(() => {
@@ -163,47 +145,9 @@ export default function CampaignListingPage() {
         }
     };
 
-    const handleInputChange = (field: keyof CampaignFormData, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleCreateCampaign = async () => {
-        try {
-            setIsCreating(true);
-            
-            // Create campaign via API
-            const newCampaign = await campaignService.createCampaign({
-                name: formData.campaignName,
-                gtmId: formData.gtmName, // This should be the actual GTM ID
-                description: formData.valueProposition
-            });
-            
-            // Close modal
-            setIsModalOpen(false);
-            
-            // Refresh campaigns list
-            await loadCampaigns();
-            
-            // Navigate to campaign creation page
-            router.push(`/campaigns/${newCampaign.id}/new`);
-            
-            // Reset form
-            setFormData({
-                campaignName: '',
-                gtmName: '23 Demo Drive for FinTech',
-                mainObjective: 'Get 10 qualified demos',
-                successMetric: 'Meetings Booked',
-                target: '10',
-                targetAudience: 'Confirmed ICP',
-                painPoint: 'Difficulty managing compliance reporting',
-                valueProposition: 'We automate compliance reporting, saving teams hours and reducing risk.'
-            });
-        } catch (error) {
-            console.error('Error creating campaign:', error);
-            setError('Failed to create campaign. Please try again.');
-        } finally {
-            setIsCreating(false);
-        }
+    const handleCampaignCreated = async (newCampaign: BackendCampaign) => {
+        // Refresh campaigns list after successful creation
+        await loadCampaigns();
     };
 
     return (
@@ -228,17 +172,12 @@ export default function CampaignListingPage() {
                         </button>
                     </div>
                     <button 
-                        onClick={() => setIsModalOpen(true)}
-                        disabled={isCreating}
-                        className="h-10 px-4 flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-xl shadow-md hover:opacity-95 disabled:opacity-50"
+                        onClick={openModal}
+                        className="h-10 px-4 flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-xl shadow-md hover:opacity-95"
                     >
-                        {isCreating ? (
-                            <Loader2 size={18} className="animate-spin" />
-                        ) : (
-                            <PlusCircle size={18} />
-                        )}
+                        <PlusCircle size={18} />
                         <span className="hidden sm:inline">
-                            {isCreating ? 'Creating...' : 'Create Campaign'}
+                            Create Campaign
                         </span>
                     </button>
                 </div>
@@ -364,7 +303,7 @@ export default function CampaignListingPage() {
                             <h3 className="text-xl font-semibold text-gray-900 mb-2">No campaigns yet</h3>
                             <p className="text-gray-600 mb-6">Create your first campaign to start reaching out to prospects.</p>
                             <button 
-                                onClick={() => setIsModalOpen(true)}
+                                onClick={openModal}
                                 className="px-6 py-3 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-lg shadow-md hover:opacity-95"
                             >
                                 <PlusCircle size={20} className="inline mr-2" />
@@ -375,154 +314,12 @@ export default function CampaignListingPage() {
                 )}
             </motion.div>
 
-            {/* Start Your Campaign Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-2 sm:p-4">
-                    <motion.div 
-                        className="bg-white w-full max-w-md sm:max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl"
-                        initial={{ scale: 0.95, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.95, opacity: 0 }}
-                    >
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200">
-                            <h2 className="text-xl sm:text-2xl font-bold text-[#FF6B2C]">Start Your Campaign</h2>
-                            <button 
-                                onClick={() => setIsModalOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                            >
-                                <X size={18} className="text-gray-500" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-                            {/* Campaign Name */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Campaign Name</label>
-                                <input
-                                    type="text"
-                                    value={formData.campaignName}
-                                    onChange={(e) => handleInputChange('campaignName', e.target.value)}
-                                    placeholder="Your Name"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                />
-                            </div>
-
-                            {/* GTM Name */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">GTM Name</label>
-                                <select
-                                    value={formData.gtmName}
-                                    onChange={(e) => handleInputChange('gtmName', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                >
-                                    <option value="23 Demo Drive for FinTech">23 Demo Drive for FinTech</option>
-                                    <option value="Enterprise Sales Outreach">Enterprise Sales Outreach</option>
-                                    <option value="Mid-Market Expansion">Mid-Market Expansion</option>
-                                </select>
-                            </div>
-
-                            {/* Main Objective */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">MY MAIN OBJECTIVE IS</label>
-                                <input
-                                    type="text"
-                                    value={formData.mainObjective}
-                                    onChange={(e) => handleInputChange('mainObjective', e.target.value)}
-                                    placeholder="Get 10 qualified demos"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                />
-                            </div>
-
-                            {/* Success Metric */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">I'LL MEASURE SUCCESS BY TRACKING</label>
-                                <select
-                                    value={formData.successMetric}
-                                    onChange={(e) => handleInputChange('successMetric', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                >
-                                    <option value="Meetings Booked">Meetings Booked</option>
-                                    <option value="Reply Rate">Reply Rate</option>
-                                    <option value="Leads Generated">Leads Generated</option>
-                                    <option value="Revenue Generated">Revenue Generated</option>
-                                </select>
-                            </div>
-
-                            {/* Target */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">MY TARGET IS</label>
-                                <input
-                                    type="text"
-                                    value={formData.target}
-                                    onChange={(e) => handleInputChange('target', e.target.value)}
-                                    placeholder="10"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                />
-                            </div>
-
-                            {/* Target Audience */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">TARGET AUDIENCE FOR THIS GOAL</label>
-                                <select
-                                    value={formData.targetAudience}
-                                    onChange={(e) => handleInputChange('targetAudience', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                >
-                                    <option value="Confirmed ICP">Confirmed ICP</option>
-                                    <option value="Enterprise Prospects">Enterprise Prospects</option>
-                                    <option value="Mid-Market Companies">Mid-Market Companies</option>
-                                    <option value="Startups">Startups</option>
-                                </select>
-                            </div>
-
-                            {/* Pain Point */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">KEY CUSTOMER PAIN POINT WE ADDRESS</label>
-                                <input
-                                    type="text"
-                                    value={formData.painPoint}
-                                    onChange={(e) => handleInputChange('painPoint', e.target.value)}
-                                    placeholder="Difficulty managing compliance reporting"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent text-sm"
-                                />
-                            </div>
-
-                            {/* Value Proposition */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">OUR CORE VALUE PROPOSITION (1-2 SENTENCES)</label>
-                                <textarea
-                                    value={formData.valueProposition}
-                                    onChange={(e) => handleInputChange('valueProposition', e.target.value)}
-                                    placeholder="We automate compliance reporting, saving teams hours and reducing risk."
-                                    rows={2}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF6B2C] focus:border-transparent resize-none text-sm"
-                                />
-                            </div>
-
-                            {/* AI Superpower Info */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <p className="text-xs text-blue-800">
-                                    <strong>AI SUPERPOWER:</strong> PROVIDING THE PAIN POINT AND VALUE PROP HERE HELPS OUR AI GENERATE MUCH MORE RELEVANT AND EFFECTIVE OUTREACH MESSAGE SUGGESTIONS FOR YOUR CAMPAIGNS LATER!
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="flex justify-end p-3 sm:p-4 border-t border-gray-200">
-                            <button
-                                onClick={handleCreateCampaign}
-                                disabled={isCreating || !formData.campaignName.trim()}
-                                className="px-6 py-2 bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] text-white font-semibold rounded-lg shadow-md hover:opacity-95 transition-opacity text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {isCreating && <Loader2 size={16} className="animate-spin" />}
-                                {isCreating ? 'Creating...' : 'Create Campaign'}
-                            </button>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+            {/* Create Campaign Modal */}
+            <CreateCampaignModal 
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                onSuccess={handleCampaignCreated}
+            />
         </div>
     );
 }

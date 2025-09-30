@@ -7,6 +7,7 @@ interface Contact {
   id: string;
   firstName: string;
   lastName: string;
+  picture?: string;
   email: string;
   personalEmail: string;
   phone: string;
@@ -25,16 +26,18 @@ interface Contact {
   replied: boolean;
   unsubscribed: boolean;
   proEmail: string;
-  customAttributes: { [key: string]: string };
 }
 
 interface ContactRowProps {
   contact: Contact;
   isSelected: boolean;
   onSelectionChange: (isSelected: boolean) => void;
+  visibleColumns?: Record<string, boolean>;
+  onEdit?: (contact: Contact) => void;
+  onEnrich?: (contact: Contact) => void;
 }
 
-const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onSelectionChange }) => {
+const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onSelectionChange, visibleColumns, onEdit, onEnrich }) => {
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -77,12 +80,25 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onSelectio
       </td>
 
       {/* Name with Avatar */}
+      {(!visibleColumns || visibleColumns.name !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-8 w-8">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-orange-500 to-blue-500 flex items-center justify-center text-white text-sm font-medium">
-              {getInitials(contact.firstName, contact.lastName)}
-            </div>
+            {contact.picture ? (
+              <img
+                src={contact.picture.startsWith('http') ? contact.picture : `https://${contact.picture}`}
+                alt={`${contact.firstName} ${contact.lastName}`}
+                className="h-8 w-8 rounded-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-orange-500 to-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                {getInitials(contact.firstName, contact.lastName)}
+              </div>
+            )}
           </div>
           <div className="ml-3">
             <div className="text-sm font-semibold text-gray-900">
@@ -91,73 +107,99 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onSelectio
           </div>
         </div>
       </td>
+      )}
 
       {/* Audiences */}
+      {(!visibleColumns || visibleColumns.audiences !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <span className="text-sm text-gray-900">{contact.audiences.join(', ')}</span>
           <ChevronDown size={16} className="ml-1 text-gray-400" />
         </div>
       </td>
+      )}
 
       {/* Campaigns */}
+      {(!visibleColumns || visibleColumns.campaigns !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.campaigns.join(', ')}</span>
       </td>
+      )}
 
       {/* Lead's Status */}
+      {(!visibleColumns || visibleColumns.leadStatus !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(contact.leadStatus)}`}>
           {contact.leadStatus}
         </span>
       </td>
+      )}
 
       {/* Contacted */}
+      {(!visibleColumns || visibleColumns.contacted !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         {getBooleanIcon(contact.contacted)}
       </td>
+      )}
 
       {/* Replied */}
+      {(!visibleColumns || visibleColumns.replied !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         {getBooleanIcon(contact.replied)}
       </td>
+      )}
 
       {/* Company Name */}
+      {(!visibleColumns || visibleColumns.company !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.company}</span>
       </td>
+      )}
 
       {/* Phone */}
+      {(!visibleColumns || visibleColumns.phone !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.phone}</span>
       </td>
+      )}
 
       {/* Unsubscribed */}
+      {(!visibleColumns || visibleColumns.unsubscribed !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         {getBooleanIcon(contact.unsubscribed)}
       </td>
+      )}
 
       {/* Pro Email */}
+      {(!visibleColumns || visibleColumns.proEmail !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.proEmail}</span>
       </td>
+      )}
 
       {/* Personal Email */}
+      {(!visibleColumns || visibleColumns.personalEmail !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.personalEmail}</span>
       </td>
+      )}
 
       {/* Job */}
+      {(!visibleColumns || visibleColumns.jobTitle !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.jobTitle}</span>
       </td>
+      )}
 
       {/* Location */}
+      {(!visibleColumns || visibleColumns.location !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.location}</span>
       </td>
+      )}
 
       {/* Website */}
+      {(!visibleColumns || visibleColumns.website !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <a
           href={`https://${contact.website}`}
@@ -169,13 +211,17 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onSelectio
           <ExternalLink size={12} />
         </a>
       </td>
+      )}
 
       {/* Industry */}
+      {(!visibleColumns || visibleColumns.industry !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.industry}</span>
       </td>
+      )}
 
       {/* LinkedIn */}
+      {(!visibleColumns || visibleColumns.linkedin !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <a
           href={`https://${contact.linkedin}`}
@@ -187,27 +233,44 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onSelectio
           <ExternalLink size={12} />
         </a>
       </td>
+      )}
 
       {/* Bio */}
+      {(!visibleColumns || visibleColumns.bio !== false) && (
       <td className="px-4 py-4">
         <span className="text-sm text-gray-900 max-w-xs truncate block" title={contact.bio}>
           {contact.bio}
         </span>
       </td>
+      )}
 
       {/* Gender */}
+      {(!visibleColumns || visibleColumns.gender !== false) && (
       <td className="px-4 py-4 whitespace-nowrap">
         <span className="text-sm text-gray-900">{contact.gender}</span>
       </td>
+      )}
 
-      {/* Custom Attributes */}
-      {Array.from({ length: 10 }, (_, i) => (
-        <td key={i} className="px-4 py-4 whitespace-nowrap">
-          <span className="text-sm text-gray-900">
-            {contact.customAttributes[`Custom Attribute ${i + 1}`] || '-'}
-          </span>
-        </td>
-      ))}
+
+      {/* Actions */}
+      <td className="px-4 py-4 whitespace-nowrap text-right">
+        <div className="flex items-center gap-2 justify-end">
+          <button
+            onClick={() => onEdit?.(contact)}
+            className="px-3 py-1.5 text-xs rounded border border-gray-300 hover:bg-gray-50"
+            title="Edit Lead"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onEnrich?.(contact)}
+            className="px-3 py-1.5 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+            title="Enrich Lead"
+          >
+            Enrich
+          </button>
+        </div>
+      </td>
     </tr>
   );
 };

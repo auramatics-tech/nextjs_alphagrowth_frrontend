@@ -248,12 +248,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       </motion.aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white flex-shrink-0 flex justify-between items-center p-4 border-b border-gray-200 h-16">
           <h1 className="text-xl font-bold text-[#1E1E1E]">{title}</h1>
           {headerActions || defaultHeaderActions}
         </header>
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto min-w-0 w-full">
           {children}
         </main>
       </div>

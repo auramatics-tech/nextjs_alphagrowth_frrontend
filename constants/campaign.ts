@@ -7,18 +7,9 @@ import {
   Send 
 } from 'lucide-react';
 
-export const MOCK_AUDIENCES = [
-  { id: '1', name: 'Tech Professionals', count: 1250, description: 'Software engineers, developers, tech leads' },
-  { id: '2', name: 'Marketing Managers', count: 890, description: 'Digital marketing, growth, content managers' },
-  { id: '3', name: 'Sales Directors', count: 456, description: 'VP Sales, Sales Directors, Revenue leaders' },
-  { id: '4', name: 'Startup Founders', count: 234, description: 'Early-stage startup founders and CEOs' }
-];
+ 
 
-export const MOCK_IDENTITIES = [
-  { id: 'identity1', name: 'Chait Jain', email: 'chait@company.com', status: 'active' },
-  { id: 'identity2', name: 'John Doe', email: 'john@company.com', status: 'active' },
-  { id: 'identity3', name: 'Jane Smith', email: 'jane@company.com', status: 'inactive' }
-];
+ 
 
 export const CAMPAIGN_STEPS = [
   { id: 'workflow', name: 'Workflow', description: 'Build your workflow', icon: Workflow, color: 'text-orange-500', status: 'current' as const },

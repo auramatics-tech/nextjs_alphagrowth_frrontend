@@ -238,11 +238,12 @@ export default function IdentitiesPage() {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await identityService.getIdentities();
-
-            if (response.status && Array.isArray(response.data)) {
-                setIdentities(response.data);
+            // identityService.getIdentities returns Identity[] (normalized service)
+            const list = await identityService.getIdentities();
+            if (Array.isArray(list)) {
+                setIdentities(list);
             } else {
+                setIdentities([]);
                 setError('Failed to load identities');
             }
         } catch (err: any) {

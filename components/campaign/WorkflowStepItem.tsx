@@ -14,12 +14,16 @@ interface WorkflowStepItemProps {
     icon: string;
     hasContent: boolean;
     content?: string;
+    day?: number;
+    order?: number;
+    editable?: boolean;
   };
   isSelected: boolean;
   onClick: () => void;
+  disabled?: boolean;
 }
 
-export default function WorkflowStepItem({ step, isSelected, onClick }: WorkflowStepItemProps) {
+export default function WorkflowStepItem({ step, isSelected, onClick, disabled = false }: WorkflowStepItemProps) {
   const getIconComponent = (iconName: string, channel: string) => {
     const iconProps = { size: 18, className: "text-gray-600" };
     
@@ -78,11 +82,11 @@ export default function WorkflowStepItem({ step, isSelected, onClick }: Workflow
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+      onClick={() => { if (!disabled) onClick(); }}
       className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected 
           ? 'border-orange-500 bg-orange-50 shadow-sm' 
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+          : `border-gray-200 bg-white ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-gray-300 hover:shadow-sm'}`
       }`}
     >
       <div className="flex items-start gap-3">
@@ -116,7 +120,12 @@ export default function WorkflowStepItem({ step, isSelected, onClick }: Workflow
             </span>
             
             <div className="flex items-center gap-1 text-xs text-gray-500">
-              {step.hasContent ? (
+              {disabled ? (
+                <>
+                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                  <span>Not editable</span>
+                </>
+              ) : step.hasContent ? (
                 <>
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span>Content added</span>
@@ -128,6 +137,12 @@ export default function WorkflowStepItem({ step, isSelected, onClick }: Workflow
                 </>
               )}
             </div>
+          </div>
+
+          {/* Day/Order indicator */}
+          <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
+            <span>Day {typeof step.day === 'number' ? step.day : 0}</span>
+            <span>Step {step.order || 0}</span>
           </div>
         </div>
       </div>

@@ -1,144 +1,115 @@
 import { apiClient } from '../lib/apiClient';
 
-// Types
 export interface Identity {
   id: string;
   name: string;
-  company_name?: string; // Optional since API doesn't return this
-  email?: string; // Optional since API doesn't return this
-  image?: string;
-  user_id?: string;
-  linkedin_sign?: 'loggedin' | 'disconnected' | 'requested';
-  email_detail?: {
-    connection_status?: 'loggedin' | 'requested' | 'disconnected';
-    status?: number;
-    provider_type?: string;
-    provider?: string;
-    type?: string;
-    data?: any;
-  };
-  phone_detail?: {
-    connection_status: 'verified' | 'unverified';
-    status: number;
-  };
+  email?: string;
+  status?: string;
+  linkedin_sign?: string;
+  identity_requests?: Array<{
+    id: string;
+    type: string;
+    connection_status: string;
+  }>;
   created_at?: string;
   updated_at?: string;
-  user?: {
-    name: string;
-  };
 }
 
 export interface CreateIdentityRequest {
   name: string;
-  company_name: string;
-  email: string;
+  email?: string;
 }
 
-export interface CreateIdentityResponse {
-  success: boolean;
-  data?: Identity;
-  message?: string;
-  error?: string;
-}
-
-export interface IdentitiesListResponse {
-  status: boolean;
-  data?: Identity[];
-  message?: string;
-  error?: string;
-}
-
-export interface SignoutRequest {
-  type: 'LINKEDIN' | 'GMAIL' | 'SMTP' | 'OUTLOOK';
-}
-
-export interface LinkedInConnectionRequest {
-  identity_id: string;
-  data: {
-    email: string;
-    password: string;
-    location: string;
-  };
-  type: 'LINKEDIN';
-}
-
-export interface VerificationRequest {
-  code: string;
-  type: 'email' | 'capcha';
-  connection_id: string;
-}
-
-export interface GoogleOAuthRequest {
-  code: string;
-  identity_id: string;
-}
-
-export interface SmtpCredentialsRequest {
-  identity_id: string;
-  data: {
-    email: string;
-    password: string;
-    sender_full_name: string;
-    smtp: {
-      host: string;
-      password: string;
-      port: number;
-    };
-    imap: {
-      host: string;
-      password: string;
-      port: number;
-    };
-  };
-  type: 'SMTP/IMAP';
+export interface UpdateIdentityRequest {
+  name?: string;
+  email?: string;
 }
 
 export const identityService = {
-  // Get all identities
-  getIdentities: async (): Promise<IdentitiesListResponse> => {
-    const response = await apiClient.get('/pub/v1/identities/list');
-    return response.data;
+  /**
+   * Get all identities
+   */
+  getIdentities: async (): Promise<Identity[]> => {
+    try {
+      const response = await apiClient.get('/pub/v1/identities/list');
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching identities:', error);
+      throw error;
+    }
   },
 
-  // Create new identity
-  createIdentity: async (data: CreateIdentityRequest): Promise<CreateIdentityResponse> => {
-    const response = await apiClient.post('/pub/v1/identities/create', data);
-    return response.data;
+  /**
+   * Get LinkedIn identities only
+   */
+  getLinkedInIdentities: async (): Promise<Identity[]> => {
+    try {
+      const response = await apiClient.get('/pub/v1/identities/list?type=LINKEDIN');
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching LinkedIn identities:', error);
+      throw error;
+    }
   },
 
-  // Sign out from channel
-  signout: async (identityId: string, data: SignoutRequest) => {
-    const response = await apiClient.post(`/pub/v1/linkedin-connections/signout/${identityId}`, data);
-    return response.data;
+  /**
+   * Get identity by ID
+   */
+  getIdentityById: async (id: string): Promise<Identity> => {
+    try {
+      const response = await apiClient.get(`/pub/v1/identities/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching identity with ID ${id}:`, error);
+      throw error;
+    }
   },
 
-  // LinkedIn connection
-  connectLinkedIn: async (data: LinkedInConnectionRequest) => {
-    const response = await apiClient.post('/pub/v1/linkedin-connections/save-credentials', data);
-    return response.data;
+  /**
+   * Create a new identity
+   */
+  createIdentity: async (data: CreateIdentityRequest): Promise<Identity> => {
+    try {
+      const response = await apiClient.post('/pub/v1/identities', data);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating identity:', error);
+      throw error;
+    }
   },
 
-  // Google OAuth callback
-  googleOAuth: async (data: GoogleOAuthRequest) => {
-    const response = await apiClient.post('/pub/v1/identities/oauth2callback', data);
-    return response.data;
+  /**
+   * Update an existing identity
+   */
+  updateIdentity: async (id: string, data: UpdateIdentityRequest): Promise<Identity> => {
+    try {
+      const response = await apiClient.put(`/pub/v1/identities/${id}`, data);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error updating identity with ID ${id}:`, error);
+      throw error;
+    }
   },
 
-  // SMTP credentials
-  saveSmtpCredentials: async (data: SmtpCredentialsRequest) => {
-    const response = await apiClient.post('/pub/v1/linkedin-connections/save-credentials', data);
-    return response.data;
+  /**
+   * Delete an identity
+   */
+  deleteIdentity: async (id: string): Promise<void> => {
+    try {
+      await apiClient.delete(`/pub/v1/identities/${id}`);
+    } catch (error) {
+      console.error(`Error deleting identity with ID ${id}:`, error);
+      throw error;
+    }
   },
 
-  // LinkedIn audio captcha verification
-  verifyLinkedInCaptcha: async (data: any) => {
-    const response = await apiClient.post('/pub/v1/linkedin-connections/verify', data);
-    return response.data;
-  },
-
-  // Check connection status
-  checkConnectionStatus: async (connectionStatusId: string) => {
-    const response = await apiClient.get(`/pub/v1/linkedin-connections/check-connection-status/${connectionStatusId}`);
-    return response.data;
+  /**
+   * Check if identity has LinkedIn connection
+   */
+  hasLinkedInConnection: (identity: Identity): boolean => {
+    return identity.identity_requests?.some(req => 
+      req.connection_status === "loggedin" && 
+      req.type === "linkedin"
+    ) || false;
   }
 };

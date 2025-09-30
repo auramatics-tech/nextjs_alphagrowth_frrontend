@@ -19,8 +19,14 @@ export interface Campaign {
 
 export interface CreateCampaignRequest {
   name: string;
+  gtm_name: string;
+  objective: string;
+  success_metric: string;
+  target: string | number;
+  audience: string;
+  pain_point: string;
+  value_prop: string;
   gtmId: string;
-  description?: string;
 }
 
 export interface CampaignFilters {
@@ -141,6 +147,47 @@ export const campaignService = {
   },
 
   /**
+   * Update campaign message creation type (ai | manual)
+   */
+  setMessageCreationType: async (campaignId: string, messageType: 'ai' | 'manual'): Promise<any> => {
+    try {
+      const response = await apiClient.put(`/pub/v1/campaigns/${campaignId}/message-type`, { messageType });
+      return response.data;
+    } catch (error) {
+      console.error('Error setting message creation type:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get message content for a specific campaign node
+   */
+  getCampaignNodeMessageByNodeId: async (nodeId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/pub/v1/campaigns/nodes/message/${nodeId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching node message:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Create/Update campaign node message
+   * payload must include: campaign_id, node_id, channel, message; plus subject/alternate_message for email
+   */
+  upsertCampaignNodeMessage: async (payload: any): Promise<any> => {
+    try {
+      // Backend expects { node_id, data: { ...fields } }
+      const response = await apiClient.post('/pub/v1/campaigns/nodes/message', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error saving node message:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Generate campaign flow by AI
    */
   generateCampaignFlowByAI: async (campaignId: string): Promise<any> => {
@@ -174,6 +221,66 @@ export const campaignService = {
       throw error;
     }
   }
+};
+
+// Campaign-level Settings (Engagement Rules)
+export interface CampaignSettings {
+  start?: { mode: 'immediate' | 'scheduled'; at?: string };
+  engagement?: {
+    linkedin?: { invitesPerDay?: number; messagesPerDay?: number; maxPending?: number };
+    email?: { emailsPerDay?: number; perMinute?: number };
+  };
+  emailTracking?: { open?: boolean; click?: boolean; reply?: boolean };
+}
+
+export const campaignSettingsService = {
+  getCampaignSettings: async (campaignId: string): Promise<CampaignSettings> => {
+    try {
+      const res = await apiClient.get(`/pub/v1/campaigns/${campaignId}/settings`);
+      return res.data?.data || {};
+    } catch (e) {
+      // Fallback: try campaign detail if settings endpoint unavailable
+      try {
+        const detail = await apiClient.get(`/pub/v1/campaigns/${campaignId}/detail`);
+        const d = detail.data?.data || {};
+        return {
+          start: { mode: d.start_date || 'immediate', at: d.custom_start_date },
+          engagement: d.engagement,
+          emailTracking: { open: d.open_tracking, click: d.click_tracking, reply: d.reply_tracking },
+        };
+      } catch (err) {
+        console.error('Error fetching campaign settings:', err);
+        return {};
+      }
+    }
+  },
+
+  updateCampaignStart: async (
+    campaignId: string,
+    payload: { mode: 'immediate' | 'scheduled'; at?: string }
+  ): Promise<any> => {
+    const res = await apiClient.post(`/pub/v1/campaigns/${campaignId}/start`, payload);
+    return res.data;
+  },
+
+  updateCampaignEngagement: async (
+    campaignId: string,
+    payload: {
+      linkedin?: { invitesPerDay?: number; messagesPerDay?: number; maxPending?: number };
+      email?: { emailsPerDay?: number; perMinute?: number };
+    }
+  ): Promise<any> => {
+    const res = await apiClient.post(`/pub/v1/campaigns/${campaignId}/engagement`, payload);
+    return res.data;
+  },
+
+  updateCampaignEmailTracking: async (
+    campaignId: string,
+    payload: { open?: boolean; click?: boolean; reply?: boolean }
+  ): Promise<any> => {
+    const res = await apiClient.post(`/pub/v1/campaigns/${campaignId}/email-tracking`, payload);
+    return res.data;
+  },
 };
 
 // --- Helper Functions ---

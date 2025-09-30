@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Edit, Info, Download, ChevronDown } from 'lucide-react';
 import ContactRow from './ContactRow';
+import { contactsService, type LeadRecord } from '../../services/contactsService';
+import EditLeadPopup, { EditableContact } from './EditLeadPopup';
 
 interface Contact {
   id: string;
   firstName: string;
   lastName: string;
+  picture?: string;
   email: string;
   personalEmail: string;
   phone: string;
@@ -148,15 +151,150 @@ const mockContacts: Contact[] = [
 const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onContactSelection, contacts }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [serverContacts, setServerContacts] = useState<Contact[] | null>(null);
+  const [selectAllAcrossPages, setSelectAllAcrossPages] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<EditableContact | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    name: true,
+    audiences: true,
+    campaigns: false,
+    leadStatus: false,
+    contacted: true,
+    replied: true,
+    company: true,
+    phone: true,
+    unsubscribed: false,
+    proEmail: true,
+    personalEmail: true,
+    jobTitle: true,
+    location: true,
+    website: true,
+    industry: true,
+    linkedin: true,
+    bio: true,
+    gender: false,
+  });
 
-  // Use passed contacts or fall back to mock data
-  const contactsData = contacts || mockContacts;
+  const mapLeadToContact = (lead: LeadRecord): Contact => ({
+    id: lead.id,
+    firstName: lead.first_name || '',
+    lastName: lead.last_name || '',
+    picture: (lead as any).picture || (lead as any).profile_url || '',
+    email: lead.pro_email || '',
+    personalEmail: lead.perso_email || '',
+    phone: lead.phone || '',
+    company: lead.company_name || '',
+    jobTitle: lead.job || '',
+    location: lead.location || '',
+    website: lead.website || '',
+    industry: lead.industry || '',
+    linkedin: lead.linkedin || '',
+    bio: lead.bio || '',
+    gender: lead.gender || '',
+    audiences: Array.isArray(lead.audienceLeads)
+      ? lead.audienceLeads.map((a) => a.audience?.audience_name || '').filter(Boolean)
+      : [],
+    campaigns: [],
+    leadStatus: '',
+    contacted: !!lead.contacted,
+    replied: !!lead.has_replied,
+    unsubscribed: !!lead.unsubscribed,
+    proEmail: lead.pro_email || '',
+  });
+  const openEdit = (c: Contact) => {
+    setEditing({
+      id: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      email: c.proEmail,
+      personalEmail: c.personalEmail,
+      phone: c.phone,
+      company: c.company,
+      jobTitle: c.jobTitle,
+      location: c.location,
+      website: c.website,
+      industry: c.industry,
+      linkedin: c.linkedin,
+      bio: c.bio,
+    });
+    setEditOpen(true);
+  };
 
-  const filteredContacts = contactsData.filter(contact =>
-    `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.company.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const saveEdit = async (updated: EditableContact) => {
+    try {
+      setSaving(true);
+      await contactsService.updateLead(updated.id, {
+        first_name: updated.firstName,
+        last_name: updated.lastName,
+        pro_email: updated.email,
+        perso_email: updated.personalEmail,
+        phone: updated.phone,
+        company_name: updated.company,
+        job: updated.jobTitle,
+        location: updated.location,
+        website: updated.website,
+        industry: updated.industry,
+        linkedin: updated.linkedin,
+        bio: updated.bio,
+      });
+      // refresh current page
+      const res = await contactsService.listLeads({ page, limit, search: searchQuery });
+      const mapped = (res.data || []).map(mapLeadToContact);
+      setServerContacts(mapped);
+      setEditOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  // Use passed contacts (for testing/dev) or server data fallback to mock
+  const contactsData: Contact[] = useMemo(() => {
+    if (contacts && contacts.length) return contacts;
+    if (serverContacts && serverContacts.length) return serverContacts;
+    return mockContacts;
+  }, [contacts, serverContacts]);
+
+  const filteredContacts = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return contactsData.filter(contact =>
+      `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(q) ||
+      contact.email.toLowerCase().includes(q) ||
+      contact.company.toLowerCase().includes(q)
+    );
+  }, [contactsData, searchQuery]);
+
+  // Fetch from API
+  useEffect(() => {
+    let mounted = true;
+    const controller = new AbortController();
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await contactsService.listLeads({ page, limit, search: searchQuery });
+        if (!mounted) return;
+        const mapped = (res.data || []).map(mapLeadToContact);
+        setServerContacts(mapped);
+        setTotal(res.total || mapped.length);
+      } catch (e) {
+        if (!mounted) return;
+        setServerContacts([]);
+        setTotal(0);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    // debounce search
+    const t = setTimeout(fetchData, 300);
+    return () => { mounted = false; controller.abort(); clearTimeout(t); };
+  }, [page, limit, searchQuery]);
 
   const handleSelectAll = () => {
     if (isSelectAllChecked) {
@@ -190,37 +328,7 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
 
   return (
     <div className="p-6">
-      <style jsx>{`
-        .table-container {
-          overflow-x: auto;
-          overflow-y: auto;
-          max-height: calc(100vh - 300px);
-        }
-        .table-container::-webkit-scrollbar {
-          height: 8px;
-          width: 8px;
-        }
-        .table-container::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 4px;
-        }
-        .table-container::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
-        }
-        .contacts-table {
-          min-width: 3000px;
-          table-layout: auto;
-        }
-        .contacts-table th,
-        .contacts-table td {
-          white-space: nowrap;
-          overflow: visible;
-        }
-      `}</style>
+      {/* removed custom CSS; using Tailwind classes only */}
       
       {/* Filter & Action Bar */}
       <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
@@ -241,7 +349,27 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
               <Plus size={16} />
               Add filter
             </button>
-            <span className="text-sm text-gray-500">{filteredContacts.length} leads</span>
+            <span className="text-sm text-gray-500">{total} leads</span>
+            {/* Columns menu */}
+            <div className="relative">
+              <details>
+                <summary className="list-none cursor-pointer flex items-center gap-2 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  Columns <ChevronDown size={14} />
+                </summary>
+                <div className="absolute z-10 mt-2 bg-white border border-gray-200 rounded shadow p-3 max-h-64 overflow-auto w-64">
+                  {Object.keys(visibleColumns).map((key) => (
+                    <label key={key} className="flex items-center gap-2 py-1 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns[key] !== false}
+                        onChange={() => setVisibleColumns((prev) => ({ ...prev, [key]: !prev[key] }))}
+                      />
+                      <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').replace(/_/g,' ').trim()}</span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+            </div>
           </div>
 
           {/* Right Side - Bulk Actions */}
@@ -259,16 +387,26 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
               <ChevronDown size={16} />
             </button>
             <button
-              disabled={selectedContacts.length === 0}
+              disabled={selectedContacts.length === 0 || enriching}
+              onClick={async () => {
+                try {
+                  setEnriching(true);
+                  await contactsService.enrichLeads({ lead_ids: selectedContacts });
+                  // optional refresh
+                } catch (e) {
+                  console.error('Bulk enrich failed', e);
+                } finally {
+                  setEnriching(false);
+                }
+              }}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                selectedContacts.length === 0
+                (selectedContacts.length === 0 || enriching)
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
               }`}
             >
               <Info size={16} />
-              Enrichment
-              <ChevronDown size={16} />
+              {enriching ? 'Enriching…' : 'Enrich'}
             </button>
             <button
               disabled={selectedContacts.length === 0}
@@ -302,13 +440,23 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
           />
           Select all {filteredContacts.length}
         </button>
+        <button
+          onClick={async () => {
+            const ids = await contactsService.fetchAllLeadIds(searchQuery);
+            onContactSelection(ids);
+            setSelectAllAcrossPages(true);
+          }}
+          className="text-sm text-blue-600 hover:text-blue-700"
+        >
+          Select all across pages
+        </button>
       </div>
 
       {/* Table Container */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="table-container">
-          <table className="contacts-table w-full">
-            <thead className="border-b border-gray-200">
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="relative overflow-auto max-h-[calc(100vh-300px)] w-full pb-1">
+          <table className="min-w-max table-auto">
+            <thead className="border-b border-gray-200 sticky top-0 bg-white z-10">
               <tr>
                 <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   <input
@@ -318,78 +466,149 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
                     className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                   />
                 </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[250px] whitespace-nowrap">
-                  Name
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  Audiences
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">
-                  Campaigns
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  Lead's Status
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
-                  Contacted
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
-                  Replied
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">
-                  Company Name
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  Phone
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
-                  Unsubscribed
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">
-                  Pro Email
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">
-                  Perso Email
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  Job
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  Location
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  Website
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
-                  Industry
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">
-                  LinkedIn
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[250px] whitespace-nowrap">
-                  Bio
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
-                  Gender
-                </th>
-                {Array.from({ length: 10 }, (_, i) => (
-                  <th key={i} className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[180px] whitespace-nowrap">
-                    Custom Attribute {i + 1}
-                  </th>
-                ))}
+                {visibleColumns.name !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[220px] whitespace-nowrap">Name</th>
+                )}
+                {visibleColumns.audiences !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Audiences</th>
+                )}
+                {visibleColumns.campaigns !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">Campaigns</th>
+                )}
+                {visibleColumns.leadStatus !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Lead's Status</th>
+                )}
+                {visibleColumns.contacted !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">Contacted</th>
+                )}
+                {visibleColumns.replied !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">Replied</th>
+                )}
+                {visibleColumns.company !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">Company Name</th>
+                )}
+                {visibleColumns.phone !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Phone</th>
+                )}
+                {visibleColumns.unsubscribed !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">Unsubscribed</th>
+                )}
+                {visibleColumns.proEmail !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">Pro Email</th>
+                )}
+                {visibleColumns.personalEmail !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">Perso Email</th>
+                )}
+                {visibleColumns.jobTitle !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Job</th>
+                )}
+                {visibleColumns.location !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Location</th>
+                )}
+                {visibleColumns.website !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Website</th>
+                )}
+                {visibleColumns.industry !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">Industry</th>
+                )}
+                {visibleColumns.linkedin !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">LinkedIn</th>
+                )}
+                {visibleColumns.bio !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[250px] whitespace-nowrap">Bio</th>
+                )}
+                {visibleColumns.gender !== false && (
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">Gender</th>
+                )}
+                {/* No custom attribute columns to match frontend_old */}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredContacts.map((contact) => (
+              {loading && (
+                <tr>
+                  <td className="px-4 py-6 text-sm text-gray-500" colSpan={25}>Loading contacts...</td>
+                </tr>
+              )}
+              {!loading && filteredContacts.map((contact) => (
                 <ContactRow
                   key={contact.id}
                   contact={contact}
                   isSelected={selectedContacts.includes(contact.id)}
                   onSelectionChange={(isSelected) => handleRowSelection(contact.id, isSelected)}
+                  visibleColumns={visibleColumns}
+                  onEdit={(c) => openEdit(c)}
+                  onEnrich={async (c) => {
+                    try {
+                      await contactsService.enrichLeads({ lead_ids: [c.id] });
+                      // Optionally refetch
+                    } catch (e) {
+                      console.error('Enrich failed', e);
+                    }
+                  }}
                 />
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Edit Lead Popup */}
+      <EditLeadPopup
+        isOpen={editOpen}
+        contact={editing}
+        saving={saving}
+        onClose={() => setEditOpen(false)}
+        onSave={saveEdit}
+      />
+
+      {/* Pagination */}
+      <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+        <div>
+          Showing {(page - 1) * limit + 1} - {Math.min(page * limit, total)} of {total}
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={limit}
+            onChange={(e) => { setPage(1); setLimit(parseInt(e.target.value, 10)); }}
+            className="border border-gray-300 rounded px-2 py-1"
+          >
+            {[10, 25, 50, 100].map((n) => (
+              <option key={n} value={n}>{n} / page</option>
+            ))}
+          </select>
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className={`px-3 py-1 rounded border ${page === 1 ? 'text-gray-300 border-gray-200' : 'text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >Prev</button>
+          {/* Page numbers */}
+          {(() => {
+            const pages: number[] = [];
+            const totalPages = Math.max(1, Math.ceil(total / limit));
+            const maxVisible = 7;
+            let start = Math.max(1, page - 3);
+            let end = Math.min(totalPages, start + maxVisible - 1);
+            if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+            return (
+              <>
+                {start > 1 && <span className="px-1">...</span>}
+                {pages.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`px-3 py-1 rounded border ${p === page ? 'bg-gray-200 border-gray-300' : 'border-gray-300 hover:bg-gray-50'}`}
+                  >{p}</button>
+                ))}
+                {end < totalPages && <span className="px-1">...</span>}
+              </>
+            );
+          })()}
+          <button
+            disabled={page * limit >= total}
+            onClick={() => setPage((p) => p + 1)}
+            className={`px-3 py-1 rounded border ${(page * limit >= total) ? 'text-gray-300 border-gray-200' : 'text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >Next</button>
         </div>
       </div>
     </div>

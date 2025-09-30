@@ -1,74 +1,39 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Download, ChevronDown, Search, MoreVertical, Mail, Linkedin } from 'lucide-react';
-
-interface Audience {
-  id: string;
-  name: string;
-  description: string;
-  leadCount: number;
-  campaigns: Array<{
-    id: string;
-    name: string;
-    type: 'linkedin' | 'email' | 'mixed';
-    followUps: number;
-  }>;
-}
-
-// Mock audience data
-const mockAudiences: Audience[] = [
-  {
-    id: '1',
-    name: 'Test1000',
-    description: 'Testing Upload',
-    leadCount: 201,
-    campaigns: []
-  },
-  {
-    id: '2',
-    name: 'TestingV1',
-    description: 'Test',
-    leadCount: 200,
-    campaigns: []
-  },
-  {
-    id: '3',
-    name: 'Medical Devices',
-    description: 'Pakari LCC test',
-    leadCount: 440,
-    campaigns: [
-      {
-        id: 'c1',
-        name: 'Linkedin > Email - 3 Follow-ups (+ Voice) 2',
-        type: 'mixed',
-        followUps: 3
-      },
-      {
-        id: 'c2',
-        name: 'Linkedin > Email | 3 follow-ups 1',
-        type: 'mixed',
-        followUps: 3
-      }
-    ]
-  },
-  {
-    id: '4',
-    name: 'LinkedIn_Outreach_Campaign_Contacts_-_Revised_Batch_1',
-    description: '',
-    leadCount: 200,
-    campaigns: []
-  }
-];
+import { audienceService, type Audience } from '../../../services/audienceService';
+import AudienceCreationManager from '../../../components/campaign/audience/AudienceCreationManager';
 
 const AudiencesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [audiences, setAudiences] = useState<Audience[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
-  const filteredAudiences = mockAudiences.filter(audience =>
-    audience.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    audience.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const list = await audienceService.getAudiences();
+        if (mounted) setAudiences(list);
+      } catch (e) {
+        if (mounted) setAudiences([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const filteredAudiences = useMemo(() => (
+    audiences.filter(audience =>
+      (audience.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (audience.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  ), [audiences, searchQuery]);
 
   const getCampaignIcon = (type: string) => {
     switch (type) {
@@ -87,6 +52,7 @@ const AudiencesPage: React.FC = () => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
       <div className="bg-white border-b border-gray-200">
@@ -103,7 +69,10 @@ const AudiencesPage: React.FC = () => {
                 <Plus size={16} />
                 New audience
               </button>
-              <button className="px-4 py-2 bg-gradient-to-r from-orange-500 to-blue-500 text-white rounded-lg hover:from-orange-600 hover:to-blue-600 transition-all flex items-center gap-2">
+              <button
+                onClick={() => setIsImportOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-blue-500 text-white rounded-lg hover:from-orange-600 hover:to-blue-600 transition-all flex items-center gap-2"
+              >
                 <Download size={16} />
                 Import leads
                 <ChevronDown size={16} />
@@ -153,7 +122,10 @@ const AudiencesPage: React.FC = () => {
 
           {/* Audience Cards */}
           <div className="divide-y divide-gray-200">
-            {filteredAudiences.map((audience) => (
+            {loading && (
+              <div className="px-6 py-8 text-sm text-gray-500">Loading audiences...</div>
+            )}
+            {!loading && filteredAudiences.map((audience) => (
               <div key={audience.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   {/* Details Column */}
@@ -161,7 +133,7 @@ const AudiencesPage: React.FC = () => {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-8 w-8">
                         <div className="h-8 w-8 rounded-full bg-gradient-to-r from-orange-500 to-blue-500 flex items-center justify-center text-white text-sm font-medium">
-                          {audience.name.charAt(0).toUpperCase()}
+                          {(audience.name || (audience as any).audience_name || '').charAt(0).toUpperCase()}
                         </div>
                       </div>
                       <div className="ml-3">
@@ -169,7 +141,7 @@ const AudiencesPage: React.FC = () => {
                           href={`/audiences/${audience.id}`}
                           className="text-sm font-semibold text-gray-900 hover:text-orange-500 transition-colors cursor-pointer"
                         >
-                          {audience.name}
+                          {audience.name || (audience as any).audience_name}
                         </Link>
                         {audience.description && (
                           <div className="text-sm text-gray-500">
@@ -183,15 +155,15 @@ const AudiencesPage: React.FC = () => {
                   {/* Leads Column */}
                   <div className="col-span-2">
                     <span className="text-sm font-medium text-gray-900">
-                      {audience.leadCount}
+                      {audience.leadCount || 0}
                     </span>
                   </div>
 
                   {/* Campaigns Column */}
                   <div className="col-span-3">
                     <div className="flex flex-wrap gap-2">
-                      {audience.campaigns.length > 0 ? (
-                        audience.campaigns.map((campaign) => (
+                      {(audience as any).campaigns && (audience as any).campaigns.length > 0 ? (
+                        (audience as any).campaigns.map((campaign: any) => (
                           <div
                             key={campaign.id}
                             className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-xs"
@@ -219,6 +191,21 @@ const AudiencesPage: React.FC = () => {
         </div>
       </div>
     </div>
+    {/* Import Leads Drawer (reuses campaign sidebar flow) */}
+    <AudienceCreationManager
+      isOpen={isImportOpen}
+      onClose={() => setIsImportOpen(false)}
+      onComplete={async () => {
+        // refresh audiences after import
+        try {
+          const list = await audienceService.getAudiences();
+          setAudiences(list);
+        } finally {
+          setIsImportOpen(false);
+        }
+      }}
+    />
+  </>
   );
 };
 

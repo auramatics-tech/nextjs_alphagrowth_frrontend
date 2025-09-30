@@ -12,10 +12,10 @@ interface NodeEditorProps {
     iconType: string;
   } | null;
   onClose: () => void;
-  onSave: (nodeId: string, updatedData: any) => void;
+ 
 }
 
-export default function NodeEditor({ nodeData, onClose, onSave }: NodeEditorProps) {
+export default function NodeEditor({ nodeData, onClose}: NodeEditorProps) {
   const [editedData, setEditedData] = useState(nodeData);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function NodeEditor({ nodeData, onClose, onSave }: NodeEditorProp
   if (!editedData) return null;
 
   const handleSave = () => {
-    onSave(editedData.id, editedData);
+ 
     onClose();
   };
 

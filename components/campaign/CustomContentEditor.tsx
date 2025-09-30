@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ArrowLeft, Eye, Save, Edit3, MessageSquare, Mail, MessageCircle, Linkedin } from 'lucide-react';
 import WorkflowStepItem from './WorkflowStepItem';
+import { campaignService } from '@/services/campaignService';
 
 interface WorkflowStep {
   id: string;
@@ -14,6 +15,9 @@ interface WorkflowStep {
   hasContent: boolean;
   content?: string;
   characterLimit?: number;
+  day?: number;
+  order?: number;
+  editable?: boolean;
 }
 
 // Mock workflow steps data
@@ -74,28 +78,185 @@ const availableVariables = [
   { name: '{{linkedinUrl}}', description: 'Contact LinkedIn URL' }
 ];
 
-export default function CustomContentEditor() {
-  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>(mockWorkflowSteps);
+interface CustomContentEditorProps {
+  campaignId: string;
+}
+
+export default function CustomContentEditor({ campaignId }: CustomContentEditorProps) {
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-  const [lastSaved, setLastSaved] = useState<Date>(new Date());
+  const [error, setError] = useState<string | null>(null);
+  const selectedStep = selectedStepId ? workflowSteps.find(step => step.id === selectedStepId) : null;
+  // per-node message cache { [nodeId]: { message, subject, alternate_message } }
+  const [nodeMessages, setNodeMessages] = useState<Record<string, any>>({});
+  // track which nodes have unsaved edits
+  const [dirtyNodes, setDirtyNodes] = useState<Record<string, boolean>>({});
+  const loadNodes = async () => {
+    try {
+      const flow = await campaignService.getCampaignFlow(campaignId);
+      const nodes = flow?.data?.nodes || flow?.nodes || [];
+      const edges = flow?.data?.edges || flow?.edges || [];
+
+      // helper: compute traversal order using DAG topological BFS from sources (no incoming)
+      const computeOrder = () => {
+        const nodeIds = nodes.map((n: any) => n.id?.toString());
+        const inDegree: Record<string, number> = {};
+        nodeIds.forEach((nid: string) => (inDegree[nid] = 0));
+        edges.forEach((e: any) => {
+          const t = e.target?.toString();
+          if (t && t in inDegree) inDegree[t] += 1;
+        });
+        const queue: string[] = [];
+        Object.keys(inDegree).forEach((nodeId: string) => { if (inDegree[nodeId] === 0) queue.push(nodeId); });
+        // tie-break by x then y position for nicer ordering
+        const getPos = (id: string) => {
+          const n = nodes.find((x: any) => x.id?.toString() === id);
+          const p = n?.position || { x: 0, y: 0 };
+          return [p.x, p.y];
+        };
+        queue.sort((a, b) => getPos(a)[0] - getPos(b)[0] || getPos(a)[1] - getPos(b)[1]);
+        const order: Record<string, number> = {};
+        let idx = 1;
+        while (queue.length) {
+          const id = queue.shift() as string;
+          order[id] = idx++;
+          const outs = edges.filter((e: any) => e.source?.toString() === id).map((e: any) => e.target?.toString());
+          outs.forEach((t: string | undefined) => {
+            if (!t) return;
+            inDegree[t] -= 1;
+            if (inDegree[t] === 0) queue.push(t);
+          });
+          queue.sort((a, b) => getPos(a)[0] - getPos(b)[0] || getPos(a)[1] - getPos(b)[1]);
+        }
+        return order;
+      };
+      const topoOrder = computeOrder();
+
+      // sort nodes by day/order when available
+      const mapped: WorkflowStep[] = nodes.map((n: any, idx: number) => {
+        const data = n.data || {};
+        const label = data.label || data.title || n.id || `Step ${idx + 1}`;
+        const subtype = data.subtype || data.type || n.type || 'action';
+        const channelRaw = data.channel || data.iconType || '';
+        const actionKey = data?.action_key || data?.actionKey || n?.type;
+        // Prefer action_key to determine channel reliably
+        let channel: any = 'generic';
+        if (actionKey === 'action_send_email') channel = 'email';
+        else if (actionKey === 'action_send_message') channel = 'linkedin';
+        else channel = /email/i.test(channelRaw) ? 'email' : /linkedin|li/i.test(channelRaw) ? 'linkedin' : 'generic';
+        const isCondition = /condition/i.test(subtype) || /if_/i.test(n.type || '');
+        const editable = actionKey === 'action_send_message' || actionKey === 'action_send_email';
+
+        return {
+          id: n.id?.toString() || `${idx + 1}`,
+          title: label,
+          description: data.subtitle || (isCondition ? 'Condition' : 'Send personalized message'),
+          type: isCondition ? 'condition' : 'action',
+          channel: channel,
+          icon: isCondition ? 'eye' : channel === 'email' ? 'email' : channel === 'linkedin' ? 'message' : 'message',
+          hasContent: false,
+          content: '',
+          characterLimit: channel === 'linkedin' ? 300 : channel === 'email' ? 1000 : 500,
+          day: data?.delayInDays ?? data?.day ?? 0,
+          order: topoOrder[n.id?.toString()] || data?.order || idx + 1,
+          editable,
+        } as WorkflowStep;
+      });
+
+      const sorted = [...mapped].sort((a, b) => (a.day || 0) - (b.day || 0) || (a.order || 0) - (b.order || 0));
+      setWorkflowSteps(sorted);
+      // pick initial selection and load its content from server so refresh shows text
+      if (sorted.length > 0) {
+        const initialId = sorted.find(s => s.type === 'action' && s.editable)?.id || sorted[0].id;
+        setSelectedStepId(initialId);
+        try {
+          const res = await campaignService.getCampaignNodeMessageByNodeId(initialId);
+          const data = res?.data || {};
+          setNodeMessages(prev => ({ ...prev, [initialId]: data }));
+          setWorkflowSteps(prev => prev.map(s => {
+            if (s.id !== initialId) return s;
+            // hydrate for both email and linkedin
+            const hydratedContent = typeof data?.message === 'string' ? data.message : '';
+            return { ...s, content: hydratedContent, hasContent: !!hydratedContent.trim() };
+          }));
+        } catch { }
+      }
+    } catch (e) {
+      // Fallback to mock if something goes wrong
+      const sortedMock = [...mockWorkflowSteps].sort((a, b) => (a.day || 0) - (b.day || 0) || (a as any).order - (b as any).order);
+      setWorkflowSteps(sortedMock);
+      setSelectedStepId(mockWorkflowSteps[0].id);
+    }
+  };
+  // Load campaign nodes dynamically
+
 
   // Get selected step
-  const selectedStep = selectedStepId ? workflowSteps.find(step => step.id === selectedStepId) : null;
 
-  // Handle step selection
-  const handleStepSelect = useCallback((stepId: string) => {
+
+  // Handle step selection: lazy-load message if not loaded
+  const handleStepSelect = useCallback(async (stepId: string) => {
     setSelectedStepId(stepId);
-  }, []);
+    try {
+      if (!nodeMessages[stepId]) {
+        const res = await campaignService.getCampaignNodeMessageByNodeId(stepId);
+        const data = res?.data || {};
+        setNodeMessages(prev => ({ ...prev, [stepId]: data }));
+        setWorkflowSteps(prev => prev.map(s => {
+          if (s.id !== stepId) return s;
+          const content = typeof data?.message === 'string' ? data.message : '';
+          return { ...s, content, hasContent: !!content.trim() };
+        }));
+      }
+    } catch (e: any) {
+      // silent load error
+    }
+  }, [nodeMessages]);
 
   // Handle content change
   const handleContentChange = useCallback((stepId: string, content: string) => {
-    setWorkflowSteps(prev => prev.map(step => 
-      step.id === stepId 
+    setWorkflowSteps(prev => prev.map(step =>
+      step.id === stepId
         ? { ...step, content, hasContent: content.trim().length > 0 }
         : step
     ));
-    setLastSaved(new Date());
+    setNodeMessages(prev => ({ ...prev, [stepId]: { ...(prev[stepId] || {}), message: content } }));
+    setDirtyNodes(prev => ({ ...prev, [stepId]: true }));
   }, []);
+
+  // Save current node (Debounced via user interactions)
+  const saveCurrentNode = useCallback(async () => {
+    if (!selectedStepId) return;
+    const step = workflowSteps.find(s => s.id === selectedStepId);
+    if (!step || !step.editable) return;
+    // Guard: avoid overwriting with blanks when no user change
+    if (!dirtyNodes[step.id]) return;
+    // Build payload according to backend validation: { node_id, data: {...} }
+    const data: any = {};
+    if (step.channel === 'email') {
+      data.subject = nodeMessages[step.id]?.subject || '';
+      data.message = nodeMessages[step.id]?.message || step.content || '';
+      if (nodeMessages[step.id]?.alternate_message) data.alternate_message = nodeMessages[step.id].alternate_message;
+    } else {
+      data.message = nodeMessages[step.id]?.message || step.content || '';
+    }
+    // If message still empty after edits, do not auto-save to prevent blank overwrite
+    if (!data.message || !data.message.trim()) {
+      return;
+    }
+    const payload: any = { node_id: step.id, data };
+    try {
+      setError(null);
+      await campaignService.upsertCampaignNodeMessage(payload);
+
+      setWorkflowSteps(prev => prev.map(s => s.id === step.id ? { ...s, hasContent: !!(data.message || '').trim() } : s));
+      setDirtyNodes(prev => ({ ...prev, [step.id]: false }));
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to save');
+    } finally {
+
+    }
+  }, [selectedStepId, workflowSteps, nodeMessages, dirtyNodes]);
 
   // Handle variable insertion
   const handleVariableInsert = useCallback((variable: string) => {
@@ -106,23 +267,13 @@ export default function CustomContentEditor() {
     }
   }, [selectedStep, handleContentChange]);
 
-  // Save all content
-  const handleSaveAll = useCallback(() => {
-    console.log('Saving all content...', workflowSteps);
-    setLastSaved(new Date());
-    // You could add a toast notification here
-    // toast.success('All content saved successfully!');
-  }, [workflowSteps]);
 
-  // Preview content
-  const handlePreview = useCallback(() => {
-    console.log('Opening preview...', workflowSteps);
-    // You could open a preview modal here
-  }, [workflowSteps]);
+
+
 
   const getIconComponent = (iconName: string, channel: string) => {
     const iconProps = { size: 18, className: "text-gray-600" };
-    
+
     switch (iconName) {
       case 'message':
         if (channel === 'linkedin') {
@@ -163,15 +314,10 @@ export default function CustomContentEditor() {
     }
   };
 
-  const formatLastSaved = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const seconds = Math.floor(diff / 1000);
-    
-    if (seconds < 60) return 'Just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    return `${Math.floor(seconds / 3600)} hours ago`;
-  };
+  useEffect(() => {
+
+    loadNodes();
+  }, [campaignId]);
 
   return (
     <div className="h-full flex flex-col">
@@ -186,21 +332,18 @@ export default function CustomContentEditor() {
             <p className="text-sm text-gray-600">Test Campaign</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span>Autosaved {formatLastSaved(lastSaved)}</span>
-          </div>
+
           <button
-            onClick={handlePreview}
+
             className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Eye size={16} className="inline mr-2" />
             Preview
           </button>
           <button
-            onClick={handleSaveAll}
+
             className="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
           >
             <Save size={16} />
@@ -218,7 +361,7 @@ export default function CustomContentEditor() {
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Workflow Steps</h2>
               <p className="text-sm text-gray-600">Click on any step to add or edit content</p>
             </div>
-            
+
             <div className="space-y-3">
               {workflowSteps.map((step) => (
                 <WorkflowStepItem
@@ -226,6 +369,7 @@ export default function CustomContentEditor() {
                   step={step}
                   isSelected={selectedStepId === step.id}
                   onClick={() => handleStepSelect(step.id)}
+                  disabled={!step.editable}
                 />
               ))}
             </div>
@@ -252,6 +396,21 @@ export default function CustomContentEditor() {
 
               {/* Message Content */}
               <div className="space-y-4">
+                {selectedStep.channel === 'email' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={(nodeMessages[selectedStep.id]?.subject) || ''}
+                      onChange={(e) => setNodeMessages(prev => ({ ...prev, [selectedStep.id]: { ...(prev[selectedStep.id] || {}), subject: e.target.value } }))}
+                      onBlur={saveCurrentNode}
+                      placeholder="Write your email subject..."
+                      className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Message Content
@@ -259,6 +418,7 @@ export default function CustomContentEditor() {
                   <textarea
                     value={selectedStep.content || ''}
                     onChange={(e) => handleContentChange(selectedStep.id, e.target.value)}
+                    onBlur={saveCurrentNode}
                     placeholder="Write your message here..."
                     className="w-full h-64 p-4 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
