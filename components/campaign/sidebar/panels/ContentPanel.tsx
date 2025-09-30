@@ -33,8 +33,7 @@ const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId }) => {
       if (selectedMode === 'ai') setIsAIEditorOpen(true);
       else setIsCustomEditorOpen(true);
     } catch (e) {
-      // keep selector open on error
-      // optionally surface a toast in future
+    
     }
   }, [selectedMode, campaignId, closeSelector]);
 
@@ -136,7 +135,7 @@ const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId }) => {
 
       {/* AI Editor Drawer */}
       <Drawer isOpen={isAIEditorOpen} onClose={() => setIsAIEditorOpen(false)} title="AI Personalisation Editor">
-        <AIPersonalisationEditor />
+        <AIPersonalisationEditor campaignId={campaignId} />
       </Drawer>
 
       {/* Custom Content Editor Drawer */}

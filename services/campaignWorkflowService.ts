@@ -185,8 +185,23 @@ export const campaignWorkflowService = {
    */
   getCampaignAiMessages: async (campaignId: string): Promise<AiMessage[]> => {
     try {
-      const response = await apiClient.get(`/pub/v1/campaigns/${campaignId}/ai-messages`);
-      return response.data.data || [];
+      // Legacy-compatible endpoint
+      const response = await apiClient.get(`/pub/v1/campaign-leads/ai-messages/${campaignId}`);
+      const raw = response.data;
+      let list: any[] = [];
+      if (Array.isArray(raw?.data?.rawMessages)) list = raw.data.rawMessages;
+      else if (Array.isArray(raw?.rawMessages)) list = raw.rawMessages;
+      else if (Array.isArray(raw?.data)) list = raw.data;
+      else if (Array.isArray(raw)) list = raw;
+      else list = [];
+
+      // Normalize common fields expected by the editor
+      return list.map((item: any) => ({
+        ...item,
+        content: item.content ?? item.ai_message ?? '',
+        message_type: item.message_type ?? item.channel ?? '',
+        node_id: item.node_id ?? item.node_position ?? item.nodeId ?? '',
+      }));
     } catch (error) {
       console.error('Error fetching AI messages:', error);
       throw error;
@@ -198,8 +213,9 @@ export const campaignWorkflowService = {
    */
   updateAiMessage: async (messageId: string, content: string): Promise<any> => {
     try {
-      const response = await apiClient.put(`/pub/v1/campaigns/ai-messages/${messageId}`, {
-        content: content
+      // Legacy-compatible endpoint and payload shape
+      const response = await apiClient.put(`/pub/v1/campaign-leads/ai-messages/${messageId}`, {
+        ai_message: content
       });
       return response.data;
     } catch (error) {
