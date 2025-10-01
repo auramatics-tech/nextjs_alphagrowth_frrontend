@@ -1,58 +1,66 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import ReusableSelect from '@/components/ui/ReusableSelect';
 import ReusableButton from '@/components/ui/ReusableButton';
 import { Plus } from 'lucide-react';
-import campaignService from '@/services/campaignService';
 import { useParams } from 'next/navigation';
-import useIdentities from '@/hooks/useIdentities';
+import { identityService } from '@/services/identityService';
 
 interface IdentityPanelProps {
-
-
-
-
+  campaignData?: any; // ✅ Receive campaign data from parent
+  onCampaignDataRefresh?: () => Promise<void>; // ✅ Callback to refresh
 }
 
 const IdentityPanel: React.FC<IdentityPanelProps> = ({
-
-
-
-
+  campaignData, // ✅ Receive from parent
+  onCampaignDataRefresh, // ✅ Callback to refresh
 }) => {
   const params = useParams();
   const campaignId = params.campaignId as string;
-  const { identities, selectIdentity, attachIdentityToCampaign } = useIdentities({ autoFetch: true, linkedInOnly: true, campaignId });
 
-
+  // ✅ Simple state for identities - no custom hook
+  const [identities, setIdentities] = useState<any[]>([]);
   const [selectedIdentityDropdown, setSelectedIdentityDropdown] = useState<string | null>(null);
 
+  // ✅ Get attached identities directly from campaignData prop
+  const attachedIdentities = campaignData?.identities || campaignData?.data?.identities || [];
 
-  const [attachedIdentities, setAttachedIdentities] = useState<any[]>([]);
-  const loadAttachedIdentities = useCallback(async () => {
+  // ✅ Fetch identities using identityService
+  const fetchIdentities = useCallback(async () => {
+    if (!campaignId) return;
+
     try {
-      const data = await campaignService.getCampaignFlow(campaignId);
-      const items = data?.data?.identities || [];
-      setAttachedIdentities(items);
-    } catch (e) {
-      // noop
+      // ✅ Use identityService method for LinkedIn identities
+      const linkedInIdentities = await identityService.getLinkedInIdentities();
+      setIdentities(linkedInIdentities);
+    } catch (error) {
+      console.error('Error fetching identities:', error);
     }
   }, [campaignId]);
 
-  React.useEffect(() => {
-    loadAttachedIdentities();
-  }, [loadAttachedIdentities]);
+  // ✅ Fetch identities on mount
+  useEffect(() => {
+    fetchIdentities();
+  }, [fetchIdentities]);
 
+  // ✅ Attach identity to campaign handler
   const handleIdentitySelect = useCallback(async (id: string) => {
+    if (!campaignId) return;
 
-    // Attach to campaign like frontend_old
-    const ok = await attachIdentityToCampaign(id);
-    if (ok) {
-      // refresh campaign identities list
-      loadAttachedIdentities();
+    try {
+      // ✅ Use identityService method to attach identity
+      const response = await identityService.attachIdentityToCampaign(campaignId, id);
+      console.log('Identity attached successfully:', response);
+      
+      // ✅ Refresh parent campaign data to get updated identities
+      if (onCampaignDataRefresh) {
+        await onCampaignDataRefresh();
+      }
+    } catch (error) {
+      console.error('Error attaching identity to campaign:', error);
     }
-  }, [selectIdentity, attachIdentityToCampaign]);
+  }, [campaignId, onCampaignDataRefresh]);
 
   return (
     <div className="mt-4 space-y-3">

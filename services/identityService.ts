@@ -111,5 +111,21 @@ export const identityService = {
       req.connection_status === "loggedin" && 
       req.type === "linkedin"
     ) || false;
+  },
+
+  /**
+   * Attach identity to campaign
+   */
+  attachIdentityToCampaign: async (campaignId: string, identityId: string): Promise<any> => {
+    try {
+      const response = await apiClient.post('/pub/v1/campaign-identities/attach', {
+        campaign_id: campaignId,
+        identity_id: identityId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error attaching identity to campaign:', error);
+      throw error;
+    }
   }
 };

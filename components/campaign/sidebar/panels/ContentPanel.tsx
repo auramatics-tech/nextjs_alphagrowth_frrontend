@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReusableButton from '@/components/ui/ReusableButton';
 import { Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,9 +11,10 @@ import { campaignService } from '@/services/campaignService';
 
 interface ContentPanelProps {
   campaignId: string;
+  campaignData?: any;
 }
 
-const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId }) => {
+const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId, campaignData }) => {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [selectedMode, setSelectedMode] = useState<'ai' | 'manual' | null>(null);
   const [isAIEditorOpen, setIsAIEditorOpen] = useState(false);
@@ -33,9 +34,24 @@ const ContentPanel: React.FC<ContentPanelProps> = ({ campaignId }) => {
       if (selectedMode === 'ai') setIsAIEditorOpen(true);
       else setIsCustomEditorOpen(true);
     } catch (e) {
-    
+
     }
   }, [selectedMode, campaignId, closeSelector]);
+
+  useEffect(() => {
+    console.log("campaignData---", campaignData?.campaign?.message_creation_type, campaignData?.campaign?.status);
+    if (campaignData?.campaign?.status == 'active') {
+      if (campaignData?.campaign?.message_creation_type == 'ai') {
+        setIsAIEditorOpen(true)
+      }
+
+      if (campaignData?.campaign?.message_creation_type == 'manual') {
+        setIsCustomEditorOpen(true)
+      }
+    }
+
+
+  }, [campaignData])
 
   return (
     <>

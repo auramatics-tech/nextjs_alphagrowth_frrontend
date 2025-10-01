@@ -15,11 +15,11 @@ interface MainSidebarContentProps {
   selectedAudience: any | null;
   onAudienceSelect: (id: string) => void;
   onCreateNewAudience: () => void;
- 
-  
   audienceLoading?: boolean;
   audienceError?: string | null;
   campaignId: string;
+  campaignData?: any; // ✅ Receive campaign data
+  onCampaignDataRefresh?: () => Promise<void>; // ✅ Callback to refresh
 }
 
 const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
@@ -28,12 +28,11 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
   selectedAudience,
   onAudienceSelect,
   onCreateNewAudience,
- 
- 
- 
   audienceLoading,
   audienceError,
   campaignId,
+  campaignData, // ✅ Receive from parent
+  onCampaignDataRefresh, // ✅ Callback to refresh
 }) => {
 
 
@@ -61,14 +60,14 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
     case 'identity':
       return (
         <IdentityPanel
-        
-    
+          campaignData={campaignData}
+          onCampaignDataRefresh={onCampaignDataRefresh}
         />
       );
     case 'content':
-      return <ContentPanel campaignId={campaignId} />;
+      return <ContentPanel campaignId={campaignId} campaignData={campaignData} />;
     case 'launch':
-      return <LaunchPanel />;
+      return <LaunchPanel campaignId={campaignId} />;
     case 'settings':
       return <SettingsPanel campaignId={campaignId} />;
     default:

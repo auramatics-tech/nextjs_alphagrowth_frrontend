@@ -1,201 +1,320 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { campaignSettingsService, CampaignSettings } from '@/services/campaignService';
+import React, { useEffect, useState, useCallback } from 'react';
+import { apiClient } from '@/lib/apiClient';
+import { CheckCircle, Calendar, Mail, Settings, Loader2 } from 'lucide-react';
 
 interface SettingsPanelProps {
   campaignId: string;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ campaignId }) => {
-  const [settings, setSettings] = useState<CampaignSettings>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  // ✅ Form State
+  const [startDate, setStartDate] = useState<'immediate' | 'custom'>('immediate');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [pauseOnReply, setPauseOnReply] = useState(true);
+  const [trackOpens, setTrackOpens] = useState(true);
+  const [trackClicks, setTrackClicks] = useState(true);
 
+  // ✅ UI State
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ✅ Load existing campaign settings
   useEffect(() => {
-    const load = async () => {
-      setLoading(true); setError(null);
+    const loadCampaignSettings = async () => {
+      if (!campaignId) return;
+
+      setLoading(true);
+      setError(null);
+
       try {
-        const s = await campaignSettingsService.getCampaignSettings(campaignId);
-        setSettings(s || {});
-      } catch (e: any) {
-        setError('Failed to load campaign settings');
+        const response = await apiClient.get(`/pub/v1/campaigns/${campaignId}/detail`);
+        const campaign = response.data?.data;
+
+        if (campaign) {
+          setStartDate(campaign.start_date || 'immediate');
+          
+          if (campaign.custom_start_date) {
+            // Convert to datetime-local format
+            const date = new Date(campaign.custom_start_date);
+            const formattedDate = date.toISOString().slice(0, 16);
+            setCustomStartDate(formattedDate);
+          }
+          
+          setPauseOnReply(campaign.pause_on_reply ?? true);
+          setTrackOpens(campaign.track_opens ?? true);
+          setTrackClicks(campaign.track_clicks ?? true);
+        }
+      } catch (err: any) {
+        console.error('Error loading campaign settings:', err);
+        setError('Failed to load settings');
       } finally {
         setLoading(false);
       }
     };
-    load();
+
+    loadCampaignSettings();
   }, [campaignId]);
 
-  const startMode = settings.start?.mode || 'immediate';
-  const startAt = settings.start?.at || '';
+  // ✅ Get minimum date (current date + 5 min buffer)
+  const getMinDate = useCallback(() => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 5); // 5 minute buffer
+    return now.toISOString().slice(0, 16);
+  }, []);
 
-  const onSaveStart = async () => {
+  // ✅ Validate form
+  const validateForm = useCallback(() => {
+    const newErrors: Record<string, string> = {};
+
+    if (!startDate) {
+      newErrors.startDate = 'Start Date is required.';
+    }
+
+    if (startDate === 'custom') {
+      if (!customStartDate) {
+        newErrors.customStartDate = 'Custom start date is required.';
+      } else {
+        const selectedDate = new Date(customStartDate);
+        const minDate = new Date(getMinDate());
+        
+        if (selectedDate < minDate) {
+          newErrors.customStartDate = 'Start date must be at least 5 minutes in the future.';
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [startDate, customStartDate, getMinDate]);
+
+  // ✅ Handle Save Settings (like frontend_old)
+  const handleSaveSettings = useCallback(async () => {
+    if (!validateForm()) return;
+
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
+
     try {
-      setLoading(true); setError(null);
-      await campaignSettingsService.updateCampaignStart(campaignId, {
-        mode: startMode as any,
-        at: startMode === 'scheduled' ? startAt : undefined,
+      // ✅ Use same API endpoint as frontend_old
+      const response = await apiClient.post('/pub/v1/campaigns/save-schedule', {
+        campaignId,
+        schedule: {
+          start_date: startDate,
+          custom_start_date: startDate === 'custom' ? customStartDate : null,
+          pause_on_reply: pauseOnReply,
+          track_opens: trackOpens,
+          track_clicks: trackClicks,
+          // Preserve other fields (timezone, days, etc.)
+          time_zone: 'UTC',
+          days_of_week: ['Monday'],
+          sending_hours: '9:00 AM - 5:00 PM',
+          max_connections: 50,
+          max_messages: 50,
+          max_emails: 50
+        }
       });
-      setSavedAt(new Date());
-    } catch (e: any) {
-      setError('Failed to save start settings');
+
+      if (response.data?.status || response.status === 200) {
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (err: any) {
+      console.error('Error saving settings:', err);
+      setError(err.response?.data?.message || 'Failed to save settings. Please try again.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  };
+  }, [campaignId, startDate, customStartDate, pauseOnReply, trackOpens, trackClicks, validateForm]);
 
-  const [engLinkedIn, setEngLinkedIn] = useState({ invitesPerDay: 20, messagesPerDay: 40, maxPending: 300 });
-  const [engEmail, setEngEmail] = useState({ emailsPerDay: 100, perMinute: 10 });
-  useEffect(() => {
-    if (settings.engagement?.linkedin) setEngLinkedIn({ ...engLinkedIn, ...settings.engagement.linkedin });
-    if (settings.engagement?.email) setEngEmail({ ...engEmail, ...settings.engagement.email });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.engagement]);
-
-  const onSaveEngagement = async () => {
-    try {
-      setLoading(true); setError(null);
-      await campaignSettingsService.updateCampaignEngagement(campaignId, {
-        linkedin: engLinkedIn,
-        email: engEmail,
-      });
-      setSavedAt(new Date());
-    } catch (e: any) {
-      setError('Failed to save engagement settings');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const [emailTrack, setEmailTrack] = useState({ open: true, click: true, reply: true });
-  useEffect(() => {
-    if (settings.emailTracking) setEmailTrack({ ...emailTrack, ...settings.emailTracking });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.emailTracking]);
-
-  const onSaveEmailTracking = async () => {
-    try {
-      setLoading(true); setError(null);
-      await campaignSettingsService.updateCampaignEmailTracking(campaignId, emailTrack);
-      setSavedAt(new Date());
-    } catch (e: any) {
-      setError('Failed to save email tracking');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ Loading State
+  if (loading) {
+    return (
+      <div className="mt-4 flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+        <span className="ml-2 text-sm text-gray-600">Loading settings...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 space-y-4">
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded">{error}</div>}
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
-      <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="px-4 pt-4">
-          <h3 className="font-semibold text-gray-900">Engagement Rules</h3>
-          <p className="text-xs text-gray-500">Set timing & conditions</p>
+      {/* Success Message */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-green-600" />
+          <p className="text-sm text-green-800">Settings saved successfully!</p>
+        </div>
+      )}
+
+      {/* Settings Card */}
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-orange-500" />
+            <h3 className="font-semibold text-gray-900">Engagement Rules</h3>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Set timing & conditions</p>
         </div>
 
-        {/* Start Date */}
-        <div className="px-4 pt-4">
-          <div className="font-medium text-sm text-gray-800 mb-2">Start Date</div>
-          <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="radio" checked={startMode === 'immediate'} onChange={() => setSettings(s => ({ ...s, start: { mode: 'immediate' } }))} />
-              Start immediately
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="radio" checked={startMode === 'scheduled'} onChange={() => setSettings(s => ({ ...s, start: { mode: 'scheduled', at: s.start?.at } }))} />
-              Schedule
-            </label>
-            {startMode === 'scheduled' && (
+        <div className="p-4 space-y-6">
+          {/* Start Date Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-gray-600" />
+              <label className="text-sm font-medium text-gray-900">Start Date</label>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Radio Options */}
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="startDate"
+                    value="immediate"
+                    checked={startDate === 'immediate'}
+                    onChange={(e) => {
+                      setStartDate('immediate');
+                      setCustomStartDate('');
+                      setErrors({});
+                    }}
+                    className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-sm text-gray-700">Start immediately</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="startDate"
+                    value="custom"
+                    checked={startDate === 'custom'}
+                    onChange={(e) => {
+                      setStartDate('custom');
+                      setErrors({});
+                    }}
+                    className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-sm text-gray-700">Set custom start date</span>
+                </label>
+              </div>
+
+              {/* Custom Date Picker */}
+              {startDate === 'custom' && (
+                <div className="ml-6 mt-2">
+                  <input
+                    type="datetime-local"
+                    value={customStartDate}
+                    min={getMinDate()}
+                    onChange={(e) => {
+                      setCustomStartDate(e.target.value);
+                      setErrors({});
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      errors.customStartDate ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.customStartDate && (
+                    <p className="mt-1 text-xs text-red-600">{errors.customStartDate}</p>
+                  )}
+                </div>
+              )}
+              
+              {errors.startDate && (
+                <p className="text-xs text-red-600">{errors.startDate}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200"></div>
+
+          {/* Engagement Settings */}
+          <div>
+            <label className="text-sm font-medium text-gray-900 block mb-3">Engagement Settings</label>
+            
+            <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors">
               <input
-                type="datetime-local"
-                value={startAt || ''}
-                onChange={e => setSettings(s => ({ ...s, start: { mode: 'scheduled', at: e.target.value } }))}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="checkbox"
+                checked={pauseOnReply}
+                onChange={(e) => setPauseOnReply(e.target.checked)}
+                className="mt-0.5 w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
               />
-            )}
-            <button onClick={onSaveStart} className="ml-auto btn-primary px-4 py-2 rounded-lg text-sm">Save</button>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="mt-4 h-px bg-gray-100" />
-
-        {/* Engagement Settings */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="font-medium text-sm text-gray-800 mb-2">Engagement Settings</div>
-          <div className="grid grid-cols-1 gap-4">
-            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-              <div className="text-sm font-medium mb-2">LinkedIn</div>
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">Invites / day</span>
-                  <input type="number" className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={engLinkedIn.invitesPerDay || 0}
-                    onChange={e => setEngLinkedIn({ ...engLinkedIn, invitesPerDay: Number(e.target.value) })} />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">Messages / day</span>
-                  <input type="number" className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={engLinkedIn.messagesPerDay || 0}
-                    onChange={e => setEngLinkedIn({ ...engLinkedIn, messagesPerDay: Number(e.target.value) })} />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">Max pending</span>
-                  <input type="number" className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={engLinkedIn.maxPending || 0}
-                    onChange={e => setEngLinkedIn({ ...engLinkedIn, maxPending: Number(e.target.value) })} />
-                </label>
+              <div>
+                <span className="text-sm text-gray-700">Pause sequence for a contact if they reply?</span>
+                <p className="text-xs text-gray-500 mt-1">Automatically stops the campaign for contacts who respond</p>
               </div>
+            </label>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200"></div>
+
+          {/* Email Tracking */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Mail className="w-4 h-4 text-gray-600" />
+              <label className="text-sm font-medium text-gray-900">Email Tracking</label>
             </div>
-            <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-              <div className="text-sm font-medium mb-2">Email</div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">Emails / day</span>
-                  <input type="number" className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={engEmail.emailsPerDay || 0}
-                    onChange={e => setEngEmail({ ...engEmail, emailsPerDay: Number(e.target.value) })} />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-gray-600">Per minute</span>
-                  <input type="number" className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" value={engEmail.perMinute || 0}
-                    onChange={e => setEngEmail({ ...engEmail, perMinute: Number(e.target.value) })} />
-                </label>
-              </div>
-            </div>
-            <div className="text-right">
-              <button onClick={onSaveEngagement} className="btn-primary px-4 py-2 rounded-lg text-sm">Save</button>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={trackOpens}
+                  onChange={(e) => setTrackOpens(e.target.checked)}
+                  className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+                />
+                <span className="text-sm text-gray-700">Track email opens?</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={trackClicks}
+                  onChange={(e) => setTrackClicks(e.target.checked)}
+                  className="w-4 h-4 text-orange-500 rounded focus:ring-orange-500"
+                />
+                <span className="text-sm text-gray-700">Track link clicks?</span>
+              </label>
             </div>
           </div>
-        </div>
 
-        {/* Divider */}
-        <div className="mt-2 h-px bg-gray-100" />
-
-        {/* Email Tracking */}
-        <div className="px-4 pt-4 pb-4">
-          <div className="font-medium text-sm text-gray-800 mb-2">Email Tracking</div>
-          <div className="flex items-center gap-6 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={!!emailTrack.open} onChange={e => setEmailTrack({ ...emailTrack, open: e.target.checked })} />
-              Opens
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={!!emailTrack.click} onChange={e => setEmailTrack({ ...emailTrack, click: e.target.checked })} />
-              Clicks
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={!!emailTrack.reply} onChange={e => setEmailTrack({ ...emailTrack, reply: e.target.checked })} />
-              Replies
-            </label>
-            <button onClick={onSaveEmailTracking} className="ml-auto btn-primary px-4 py-2 rounded-lg text-sm">Save</button>
+          {/* Save Button */}
+          <div className="pt-2">
+            <button
+              onClick={handleSaveSettings}
+              disabled={saving}
+              className="w-full bg-gradient-to-r from-orange-500 to-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:shadow-lg transition-shadow duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  Save Settings
+                </>
+              )}
+            </button>
           </div>
         </div>
-      </section>
-
-      <div className="flex items-center gap-3 text-xs text-gray-500">
-        {savedAt && <span>Saved {savedAt.toLocaleTimeString()}</span>}
-        {loading && <span>Working…</span>}
       </div>
     </div>
   );

@@ -3,19 +3,23 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, ChevronRight, Minimize2, Maximize2 } from 'lucide-react';
 import { CAMPAIGN_STEPS } from '@/constants/campaign';
-import { useAudiences } from '@/hooks/useAudiences';
+import { audienceService } from '@/services/audienceService';
 import MainSidebarContent from './panels/MainSidebarContent';
 import AudienceCreationManager from '../audience/AudienceCreationManager';
 
 
 interface CampaignSidebarManagerProps {
   campaignId: string;
+  campaignData?: any; // ✅ Receive campaign data from parent
+  onCampaignDataRefresh?: () => Promise<void>; // ✅ Callback to refresh parent data
 }
 
 type SidebarView = 'main' | 'audience-creation' | 'content-slider' | 'ai-editor' | 'custom-editor' | 'node-editor';
 
 const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
   campaignId,
+  campaignData, // ✅ Receive from parent
+  onCampaignDataRefresh, // ✅ Callback to refresh parent
 }) => {
 
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -26,41 +30,76 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
   // Sidebar view state
   const [currentView, setCurrentView] = useState<SidebarView>('main');
 
-  // Audience state - using dynamic API data
-  const {
-    audiences,
-    selectedAudience,
-    loading: audienceLoading,
-    error: audienceError,
-    selectAudience: selectAudienceAPI,
-    refreshAudiences,
+  // ✅ Simple audience state - no custom hook
+  const [audiences, setAudiences] = useState<any[]>([]);
+  const [audienceLoading, setAudienceLoading] = useState(false);
+  const [audienceError, setAudienceError] = useState<string | null>(null);
 
+  // ✅ Get selectedAudience from campaignData prop
+  const selectedAudience = campaignData?.selectedAudience || campaignData?.data?.selectedAudience || null;
 
-  } = useAudiences({ campaignId, autoFetch: true });
-
-
-
-
-
-  // Audience handlers
-  const handleAudienceSelect = useCallback(async (id: string) => {
-    const success = await selectAudienceAPI(id);
-    if (success) {
-
-      console.log('Audience selection completed successfully');
+  // ✅ Simple fetch audiences function
+  const fetchAudiences = useCallback(async () => {
+    if (!campaignId) return;
+    
+    setAudienceLoading(true);
+    setAudienceError(null);
+    
+    try {
+      const fetchedAudiences = await audienceService.getAudiences(campaignId);
+      setAudiences(fetchedAudiences);
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to fetch audiences';
+      setAudienceError(errorMessage);
+      console.error('Error fetching audiences:', err);
+    } finally {
+      setAudienceLoading(false);
     }
-  }, [selectAudienceAPI]);
+  }, [campaignId]);
 
+  // ✅ Fetch audiences on mount
+  useEffect(() => {
+    fetchAudiences();
+  }, [fetchAudiences]);
 
+  // ✅ Simple audience select handler
+  const handleAudienceSelect = useCallback(async (id: string) => {
+    if (!campaignId) return;
+
+    setAudienceLoading(true);
+    setAudienceError(null);
+    
+    try {
+      const response = await audienceService.selectAudience(campaignId, id);
+      
+      if (response.success) {
+        console.log('Audience selected successfully');
+        
+        // ✅ Refresh parent campaign data to get updated selectedAudience
+        if (onCampaignDataRefresh) {
+          await onCampaignDataRefresh();
+        }
+      } else {
+        setAudienceError(response.message || 'Failed to select audience');
+      }
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to select audience';
+      setAudienceError(errorMessage);
+      console.error('Error selecting audience:', err);
+    } finally {
+      setAudienceLoading(false);
+    }
+  }, [campaignId, onCampaignDataRefresh]);
 
   const handleCreateNewAudience = useCallback(() => {
     setCurrentView('audience-creation');
   }, []);
 
-
   const handleAudienceCreationComplete = useCallback(async (audienceData?: any) => {
-    await refreshAudiences();
-  }, [refreshAudiences]);
+    // ✅ Refresh audiences after creation
+    await fetchAudiences();
+    setCurrentView('main');
+  }, [fetchAudiences]);
 
 
 
@@ -197,6 +236,8 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
                             audienceLoading={audienceLoading}
                             audienceError={audienceError}
                             campaignId={campaignId}
+                            campaignData={campaignData}
+                            onCampaignDataRefresh={onCampaignDataRefresh}
                           />
                         </div>
                       </motion.div>

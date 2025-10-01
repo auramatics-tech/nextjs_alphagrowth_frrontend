@@ -29,13 +29,16 @@ type Campaign = BackendCampaign & {
   meetingsBooked: number;
   channels: Channel[];
   lastActivity: string;
+  gtmGoal?: string; // ✅ GTM Goal name
+  audienceName?: string; // ✅ Audience name
+  totalLeads?: number; // ✅ Total leads count
 };
 
 const MOCK_CAMPAIGNS: Campaign[] = [
-    { id: 'cam_1', name: 'Q4 Enterprise Outreach - US', status: 'active', gtmId: 'gtm_1', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 350, total: 500 }, replyRate: 62, meetingsBooked: 28, channels: ['LinkedIn', 'Email'] as Channel[], lastActivity: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'cam_2', name: 'Mid-Market Expansion - EMEA', status: 'active', gtmId: 'gtm_2', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 120, total: 300 }, replyRate: 45, meetingsBooked: 12, channels: ['LinkedIn', 'Email', 'Voice'] as Channel[], lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'cam_3', name: 'Startup Program Nurture', status: 'completed', gtmId: 'gtm_3', created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 200, total: 200 }, replyRate: 88, meetingsBooked: 45, channels: ['Email'] as Channel[], lastActivity: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'cam_4', name: 'Q1 2026 Planning (Draft)', status: 'draft', gtmId: 'gtm_4', created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 0, total: 1000 }, replyRate: 0, meetingsBooked: 0, channels: ['LinkedIn'] as Channel[], lastActivity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
+    { id: 'cam_1', name: 'Q4 Enterprise Outreach - US', status: 'active', gtmId: 'gtm_1', gtmGoal: 'SaaS Expansion', audienceName: 'Tech Executives', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 350, total: 500 }, totalLeads: 500, replyRate: 62, meetingsBooked: 28, channels: ['LinkedIn', 'Email'] as Channel[], lastActivity: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'cam_2', name: 'Mid-Market Expansion - EMEA', status: 'active', gtmId: 'gtm_2', gtmGoal: 'Enterprise Growth', audienceName: 'VPs of Marketing', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 120, total: 300 }, totalLeads: 300, replyRate: 45, meetingsBooked: 12, channels: ['LinkedIn', 'Email', 'Voice'] as Channel[], lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'cam_3', name: 'Startup Program Nurture', status: 'completed', gtmId: 'gtm_3', gtmGoal: 'Product Launch', audienceName: 'Startup Founders', created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 200, total: 200 }, totalLeads: 200, replyRate: 88, meetingsBooked: 45, channels: ['Email'] as Channel[], lastActivity: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+    { id: 'cam_4', name: 'Q1 2026 Planning (Draft)', status: 'draft', gtmId: 'gtm_4', gtmGoal: 'Market Research', audienceName: 'CTOs & Tech Leaders', created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 0, total: 1000 }, totalLeads: 1000, replyRate: 0, meetingsBooked: 0, channels: ['LinkedIn'] as Channel[], lastActivity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
 ];
 
 // --- Reusable Themed Components ---
@@ -53,13 +56,14 @@ const StatusBadge = ({ status }: { status: CampaignStatus }) => {
         draft: <PauseCircle size={12} className="text-gray-500" />,
         paused: <PauseCircle size={12} className="text-yellow-500" />
     };
-    const displayText = {
-        active: 'Active',
-        completed: 'Completed',
-        draft: 'Draft',
-        paused: 'Paused'
-    };
-    return <div className={`px-3 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1.5 ${styles[status]}`}>{icon[status]} {displayText[status]}</div>;
+    
+    // ✅ Display status as lowercase like frontend_old
+    return (
+        <div className={`px-3 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1.5 ${styles[status]}`}>
+            {icon[status]} 
+            <span>{status}</span>
+        </div>
+    );
 };
 
 const ProgressBar = ({ current, total }: { current: number; total: number }) => {
@@ -120,14 +124,19 @@ export default function CampaignListingPage() {
             
             if (backendCampaigns && backendCampaigns.length > 0) {
                 // Transform backend campaigns to UI format
-                const transformedCampaigns: Campaign[] = backendCampaigns.map((backendCampaign: BackendCampaign) => ({
+                const transformedCampaigns: Campaign[] = backendCampaigns.map((backendCampaign: any) => ({
                     ...backendCampaign,
-                    status: (backendCampaign.status.charAt(0).toUpperCase() + backendCampaign.status.slice(1)) as CampaignStatus,
+                    // ✅ Keep status as-is from backend (lowercase like frontend_old)
+                    status: backendCampaign.status as CampaignStatus,
                     leadsCompleted: backendCampaign.leadsCompleted || { current: 0, total: 0 },
                     replyRate: backendCampaign.replyRate || 0,
                     meetingsBooked: backendCampaign.meetingsBooked || 0,
                     channels: (backendCampaign.channels || ['LinkedIn']) as Channel[],
-                    lastActivity: backendCampaign.lastActivity || backendCampaign.updated_at
+                    lastActivity: backendCampaign.lastActivity || backendCampaign.updated_at,
+                    // ✅ New fields
+                    gtmGoal: backendCampaign.gtm?.name || backendCampaign.gtmGoal || 'No GTM',
+                    audienceName: backendCampaign.audience?.audience_name || backendCampaign.audienceName || 'No Audience',
+                    totalLeads: backendCampaign.totalLeads || backendCampaign.campaignLeads?.length || 0
                 }));
                 
                 setCampaigns(transformedCampaigns);
@@ -220,7 +229,7 @@ export default function CampaignListingPage() {
                                         <th className="p-4 w-10">
                                             <input type="checkbox" className="rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
                                         </th>
-                                        {['Name', 'Status', 'Leads Completed', 'Reply Rate', 'Meetings', 'Channels', 'Last Activity', ''].map(h => 
+                                        {['Name', 'GTM Goal', 'Audience', 'Status', 'Total Leads', 'Progress', 'Reply Rate', 'Meetings', 'Channels', 'Created', ''].map(h => 
                                             <th key={h} className="p-4 text-left font-semibold">{h}</th>
                                         )}
                                     </tr>
@@ -249,12 +258,36 @@ export default function CampaignListingPage() {
                                                 {campaign.name}
                                                 <span className="ml-2 text-xs text-gray-400 group-hover:text-orange-500">→</span>
                                             </td>
+                                            {/* ✅ GTM Goal Column */}
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Target size={14} className="text-orange-500" />
+                                                    <span className="text-sm text-gray-700">{campaign.gtmGoal || 'No GTM'}</span>
+                                                </div>
+                                            </td>
+                                            {/* ✅ Audience Column */}
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Users size={14} className="text-blue-500" />
+                                                    <span className="text-sm text-gray-700">{campaign.audienceName || 'No Audience'}</span>
+                                                </div>
+                                            </td>
                                             <td className="p-4">
                                                 <StatusBadge status={campaign.status} />
+                                            </td>
+                                            {/* ✅ Total Leads Column */}
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-semibold text-gray-900">{campaign.totalLeads || campaign.leadsCompleted?.total || 0}</span>
+                                                    <span className="text-xs text-gray-500">leads</span>
+                                                </div>
                                             </td>
                                             <td className="p-4">
                                                 <div className="w-24">
                                                     <ProgressBar current={campaign.leadsCompleted?.current || 0} total={campaign.leadsCompleted?.total || 0} />
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {campaign.leadsCompleted?.current || 0}/{campaign.leadsCompleted?.total || 0}
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="p-4">
@@ -264,8 +297,13 @@ export default function CampaignListingPage() {
                                             <td className="p-4">
                                                 <ChannelIcons channels={campaign.channels || ['LinkedIn']} />
                                             </td>
+                                            {/* ✅ Created Date Column */}
                                             <td className="p-4 text-sm text-gray-500">
-                                                {campaign.lastActivity ? formatDistanceToNow(new Date(campaign.lastActivity), { addSuffix: true }) : 'No activity'}
+                                                {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric', 
+                                                    year: 'numeric' 
+                                                }) : 'N/A'}
                                             </td>
                                             <td className="p-4 text-right">
                                                 <button 

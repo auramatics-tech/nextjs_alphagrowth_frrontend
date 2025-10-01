@@ -23,10 +23,10 @@ const nodeTypes = {
 interface ReactFlowWrapperProps {
   campaignId: string;
   onNodeClick?: (nodeId: string, nodeData: any) => void;
- 
-
   setShowNodeSelector?: any
   showNodeSelector?: any
+  campaignData?: any; // ✅ Receive campaign data from parent
+  onCampaignDataRefresh?: () => Promise<void>; // ✅ Callback to refresh parent data
 }
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
@@ -34,7 +34,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   showNodeSelector,
   campaignId,
   onNodeClick,
-  
+  campaignData, // ✅ Receive from parent
+  onCampaignDataRefresh, // ✅ Callback to refresh parent
 
 
 }) => {
@@ -85,78 +86,66 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
 
-  const fetchWorkflowData = useCallback(async () => {
-    if (!campaignId) return;
+  // ✅ REMOVED: fetchWorkflowData - Now using campaignData from parent
+  
+  // ✅ Load nodes and edges from campaignData prop
+  useEffect(() => {
+    if (!campaignData) return;
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const flowData = await campaignWorkflowService.getCampaignFlow(campaignId);
-      const { nodes: fetchedNodes, edges: fetchedEdges } = flowData;
+    const fetchedNodes = campaignData.nodes || campaignData.data?.nodes || [];
+    const fetchedEdges = campaignData.edges || campaignData.data?.edges || [];
 
-      if (fetchedNodes && fetchedNodes.length > 0) {
-        // Direct conversion from backend data to React Flow format
+    if (fetchedNodes && fetchedNodes.length > 0) {
+      console.log("Loading nodes from campaignData:", fetchedNodes);
+      console.log("Loading edges from campaignData:", fetchedEdges);
 
-        console.log("fetchedNodes---", fetchedNodes);
-        console.log("fetchedEdges---", fetchedEdges);
+      const flowNodes = fetchedNodes.map((node: any) => ({
+        id: node.id,
+        type: "custom",
+        position: {
+          x: node.position?.x || 250,
+          y: node.position?.y || 100
+        },
+        data: {
+          label: node.data?.label || node.label || getNodeLabel(node.action_key || node.type),
+          iconType: node.data?.iconType || node.action_key || node.type,
+          action_key: node.data.action_key,
+          subtitle: node.data?.subtitle || getNodeSubtitle(node.action_key || node.type),
+          isCondition: ["condition_has_email", "condition_open_email", "condition_email_verified", "condition_has_phone_number", "condition_accepted_invite"].includes(node.data.action_key) || false,
+          hasYesBranch: false,
+          hasNoBranch: false,
+          onPlusClick: () => handlePlusClick(node.id),
+          onYesClick: ["condition_has_email", "condition_open_email", "condition_email_verified", "condition_has_phone_number", "condition_accepted_invite"].includes(node.data.action_key) ? () => handlePlusClick(node.id, 'yes') : undefined,
+          onNoClick: node.data.action_key?.startsWith('condition_') ? () => handlePlusClick(node.id, 'no') : undefined,
+          onYesDrop: undefined,
+          onNoDrop: undefined,
+          onReplaceClick: () => handleReplaceClick(node.id),
+          onDeleteClick: () => handleDeleteNode(node.id),
+          onWaitTimeChange: (nodeId: string, waitTimeInMinutes: number) => handleWaitTimeChange(nodeId, waitTimeInMinutes),
+          onNodeClick: () => onNodeClick?.(node.id, { iconType: node.action_key || node.type }),
+          sourceId: undefined,
+        },
+      }));
 
-        const flowNodes = fetchedNodes.map(node => ({
-          id: node.id,
-          type: "custom",
-          position: {
-            x: node.position?.x || 250,
-            y: node.position?.y || 100
-          },
-          // ADD THESE PROPS:
+      const flowEdges = fetchedEdges.map((edge: any) => ({
+        id: edge.id || `e${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle || (edge.label === 'yes' ? 'yes' : (edge.label === 'no' ? 'no' : undefined)),
+        type: "smoothstep",
+        animated: true,
+        label: edge.label || undefined,
+        labelBgPadding: [8, 4],
+        labelBgBorderRadius: 4,
+        labelBgStyle: { fill: '#fff', stroke: '#ccc', strokeWidth: 1 },
+        labelStyle: { fill: edge.label === 'yes' ? '#22C55E' : (edge.label === 'no' ? '#EF4444' : '#6B7280'), fontWeight: 600 },
+        style: { stroke: edge.label === 'yes' ? '#22C55E' : (edge.label === 'no' ? '#EF4444' : '#6B7280'), strokeWidth: 2 },
+      }));
 
-
-          data: {
-            label: node.data?.label || node.label || getNodeLabel(node.action_key || node.type),
-            iconType: node.data?.iconType || node.action_key || node.type,
-            action_key: node.data.action_key,
-            subtitle: node.data?.subtitle || getNodeSubtitle(node.action_key || node.type),
-            isCondition: ["condition_has_email", "condition_open_email", "condition_email_verified", "condition_has_phone_number", "condition_accepted_invite"].includes(node.data.action_key) || false,
-            hasYesBranch: false,
-            hasNoBranch: false,
-            onPlusClick: () => handlePlusClick(node.id),
-            onYesClick: ["condition_has_email", "condition_open_email", "condition_email_verified", "condition_has_phone_number", "condition_accepted_invite"].includes(node.data.action_key) ? () => handlePlusClick(node.id, 'yes') : undefined,
-            onNoClick: node.data.action_key?.startsWith('condition_') ? () => handlePlusClick(node.id, 'no') : undefined,
-            onYesDrop: undefined,
-            onNoDrop: undefined,
-            onReplaceClick: () => handleReplaceClick(node.id),
-            onDeleteClick: () => handleDeleteNode(node.id),
-
-            onWaitTimeChange: (nodeId: string, waitTimeInMinutes: number) => handleWaitTimeChange(nodeId, waitTimeInMinutes),
-            onNodeClick: () => onNodeClick?.(node.id, { iconType: node.action_key || node.type }),
-            sourceId: undefined,
-          },
-        }));
-
-        const flowEdges = fetchedEdges.map(edge => ({
-          id: edge.id || `e${edge.source}-${edge.target}`,
-          source: edge.source,
-          target: edge.target,
-          sourceHandle: edge.sourceHandle || (edge.label === 'yes' ? 'yes' : (edge.label === 'no' ? 'no' : undefined)),
-          type: "smoothstep",
-          animated: true,
-          label: edge.label || undefined,
-          labelBgPadding: [8, 4],
-          labelBgBorderRadius: 4,
-          labelBgStyle: { fill: '#fff', stroke: '#ccc', strokeWidth: 1 },
-          labelStyle: { fill: edge.label === 'yes' ? '#22C55E' : (edge.label === 'no' ? '#EF4444' : '#6B7280'), fontWeight: 600 },
-          style: { stroke: edge.label === 'yes' ? '#22C55E' : (edge.label === 'no' ? '#EF4444' : '#6B7280'), strokeWidth: 2 },
-        }));
-
-        setNodes(flowNodes as any);
-        setEdges(flowEdges as any);
-      }
-    } catch (error: any) {
-      console.error('Error fetching workflow data:', error);
-      setError(error.message || 'Failed to load workflow data');
-    } finally {
-      setIsLoading(false);
+      setNodes(flowNodes as any);
+      setEdges(flowEdges as any);
     }
-  }, [campaignId]);
+  }, [campaignData]); // ✅ Re-run when campaignData changes
 
   // Create handleWaitTimeChange after data is loaded (like frontend_old)
   const handleWaitTimeChange = (nodeId: string, waitTimeInMinutes: number) => {
@@ -180,9 +169,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
    
   };
 
-  useEffect(() => {
-    fetchWorkflowData();
-  }, [fetchWorkflowData]);
+  // ✅ REMOVED: useEffect that called fetchWorkflowData - now using campaignData prop
 
   // API Integration Functions
 
@@ -206,15 +193,18 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       setDeletedNodeIds([]);
       setLastSaved(new Date());
       setHasUnsavedChanges(false);
-      // setLastSavedTree(currentDataString);
-      fetchWorkflowData();
+      
+      // ✅ Call parent refresh callback instead of fetching data here
+      if (onCampaignDataRefresh) {
+        await onCampaignDataRefresh();
+      }
     } catch (error: any) {
       console.error('Error saving workflow:', error);
       setError(error.message || 'Failed to save workflow');
     } finally {
       setIsSaving(false);
     }
-  }, [campaignId, nodes, edges, deletedNodeIds, fetchWorkflowData]);
+  }, [campaignId, nodes, edges, deletedNodeIds, onCampaignDataRefresh]); // ✅ Updated dependency
 
 
 
@@ -314,8 +304,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           return;
         }
 
-        // Refresh data after successful deletion
-        fetchWorkflowData();
+        // ✅ Refresh data after successful deletion using parent callback
+        if (onCampaignDataRefresh) {
+          await onCampaignDataRefresh();
+        }
       }
     } catch (error: any) {
       console.error('Error deleting node:', error);
@@ -323,7 +315,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [nodes, edges, deletedNodeIds, saveWorkflowData, fetchWorkflowData]);
+  }, [nodes, edges, deletedNodeIds, saveWorkflowData, onCampaignDataRefresh]); // ✅ Updated dependency
 
 
 
@@ -350,14 +342,16 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         subtitle: getNodeSubtitle(nodeType),
         wait_time: nodeType === 'wait' ? 1440 : 0
 
-      }).then(() => {
+      }).then(async () => {
         // Close selector and reset state
         setShowNodeSelector(false);
         setReplaceMode(false);
         setReplaceNodeId(null);
 
-        // Fetch fresh flow data from backend
-        fetchWorkflowData();
+        // ✅ Refresh data from parent callback
+        if (onCampaignDataRefresh) {
+          await onCampaignDataRefresh();
+        }
       }).catch((error) => {
         console.error('Error replacing node:', error);
         setError('Failed to replace node');
