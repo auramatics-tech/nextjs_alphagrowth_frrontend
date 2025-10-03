@@ -390,6 +390,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       id: uuidv4(),
       type: "custom",
       position,
+       action_key: nodeType,
       data: {
         label: getNodeLabel(nodeType),
         iconType: nodeType,
