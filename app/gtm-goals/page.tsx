@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
@@ -193,12 +193,7 @@ const GTMStrategyHub = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  // Load GTM goals on component mount
-  useEffect(() => {
-    loadGTMGoals();
-  }, []);
-
-  const loadGTMGoals = async () => {
+  const loadGTMGoals = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -218,7 +213,12 @@ const GTMStrategyHub = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load GTM goals on component mount
+  useEffect(() => {
+    loadGTMGoals();
+  }, [loadGTMGoals]);
 
   // Process GTM data to match the UI format
   const processGTMData = (gtm: GTMGoal): ProcessedGTMGoal => {

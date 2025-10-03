@@ -165,8 +165,8 @@ export default function BusinessOnboardingPage() {
                                 <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                     <div className="text-left mb-8">
                                         <p className="text-sm font-semibold text-[#FF6B2C]">Step 2 · Overview</p>
-                                        <h1 className="text-3xl font-semibold text-[#1E1E1E] mt-2">Let's Understand Your Business Better</h1>
-                                        <p className="mt-2 text-base text-gray-500">We'll briefly analyze your site to tailor ICPs and messaging. This takes about 10 seconds.</p>
+                                        <h1 className="text-3xl font-semibold text-[#1E1E1E] mt-2">Let&apos;s Understand Your Business Better</h1>
+                                        <p className="mt-2 text-base text-gray-500">We&apos;ll briefly analyze your site to tailor ICPs and messaging. This takes about 10 seconds.</p>
                                         <div className="mt-6 w-full">
                                             <OnboardingStepper currentStep={2} totalSteps={6} />
                                         </div>

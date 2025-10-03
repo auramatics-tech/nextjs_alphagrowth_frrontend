@@ -85,7 +85,7 @@ export default function OnboardingAllSetPage() {
                         className="mt-8 border-t border-gray-200 pt-8 space-y-6"
                         variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
                     >
-                        <h2 className="text-xl font-semibold text-[#1E1E1E]">What You've Unlocked:</h2>
+                        <h2 className="text-xl font-semibold text-[#1E1E1E]">What You&apos;ve Unlocked:</h2>
                         <FeatureHighlight
                             icon={Users}
                             title="A High-Value Customer Profile"
@@ -124,7 +124,7 @@ export default function OnboardingAllSetPage() {
                     </motion.div>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-[#1E1E1E] mt-4">
-                        You're All Set 🎉
+                        You&apos;re All Set 🎉
                     </h1>
 
                     <p className="text-base text-gray-600 max-w-md mx-auto mt-3">

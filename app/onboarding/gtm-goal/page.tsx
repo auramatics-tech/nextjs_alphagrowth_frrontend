@@ -207,7 +207,7 @@ export default function GtmGoalPage() {
                 <div className="text-left mb-8">
                     <p className="font-semibold text-[#FF6B2C]">Step 5 · Strategy</p>
                     <h1 className="text-3xl md:text-4xl font-bold text-[#1E1E1E] mt-1">Set Your GTM Goal</h1>
-                    <p className="mt-2 text-base text-gray-500">This goal is your AI's "North Star"—it powers all content generation and personalization to ensure every touchpoint is aligned with your strategy.</p>
+                    <p className="mt-2 text-base text-gray-500">This goal is your AI&apos;s &quot;North Star&quot;—it powers all content generation and personalization to ensure every touchpoint is aligned with your strategy.</p>
                      <div className="mt-6 max-w-lg"><OnboardingStepper currentStep={5} totalSteps={6}/></div>
                 </div>
 
@@ -311,7 +311,7 @@ export default function GtmGoalPage() {
                                 <div className="mt-4 space-y-4 text-sm text-gray-600">
                                     <div className="flex items-start gap-3">
                                         <Star size={16} className="text-orange-500 mt-1 flex-shrink-0"/>
-                                        <p><strong>Your GTM Goal is your AI's North Star.</strong> It provides the strategic direction to ensure every email, LinkedIn message, and task is perfectly aligned with your main objective.</p>
+                                        <p><strong>Your GTM Goal is your AI&apos;s North Star.</strong> It provides the strategic direction to ensure every email, LinkedIn message, and task is perfectly aligned with your main objective.</p>
                                     </div>
                                      <div className="flex items-start gap-3">
                                         <GitBranch size={16} className="text-orange-500 mt-1 flex-shrink-0"/>

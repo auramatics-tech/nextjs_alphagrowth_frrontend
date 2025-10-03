@@ -250,7 +250,7 @@ const LoginPage = () => {
                     className="text-center mt-6"
                 >
                     <p className="text-gray-600">
-                        Don't have an account?{' '}
+                        Don&apos;t have an account?{' '}
                         <a
                             href={ROUTES.SIGNUP}
                             className="text-[#FF6B2C] hover:text-[#E55A1F] font-semibold transition-colors"

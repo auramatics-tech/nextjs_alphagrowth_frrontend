@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
@@ -27,12 +27,7 @@ export default function IcpListingPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // Load ICPs on component mount
-  useEffect(() => {
-    loadICPs();
-  }, []);
-
-  const loadICPs = async () => {
+  const loadICPs = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +47,12 @@ export default function IcpListingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load ICPs on component mount
+  useEffect(() => {
+    loadICPs();
+  }, [loadICPs]);
 
   // Process ICP data to match the UI format
   const processICPData = (icp: ICP): ProcessedICP => {

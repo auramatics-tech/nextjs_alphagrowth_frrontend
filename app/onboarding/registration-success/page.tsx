@@ -62,10 +62,10 @@ export default function RegistrationSuccessPage() {
                 Sign up Completed
               </div>
               <div className="text-gray-600 mb-6">
-                You're just a few steps away from streamlining your Go-to-Market
+                You&apos;re just a few steps away from streamlining your Go-to-Market
                 strategy, finding verified leads, personalizing outreach with
                 AI, and automating your campaigns across LinkedIn & Email – all
-                in one place. To get the best results, let's quickly understand
+                in one place. To get the best results, let&apos;s quickly understand
                 your business.
               </div>
 
@@ -90,7 +90,7 @@ export default function RegistrationSuccessPage() {
                   whileTap={{ scale: 0.98 }}
                   className="bg-gradient-to-r from-orange-500 to-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity cursor-pointer"
                 >
-                  Let's Personalize Your Experience
+                  Let&apos;s Personalize Your Experience
                 </motion.button>
               </div>
             </div>

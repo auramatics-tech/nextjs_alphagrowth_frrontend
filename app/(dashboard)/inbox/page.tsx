@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConversationListPanel from '@/components/inbox/ConversationListPanel';
 import ChatPanel from '@/components/inbox/ChatPanel';
@@ -26,46 +26,7 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load identities and conversations on component mount
-  useEffect(() => {
-    loadIdentities();
-  }, []);
-
-  // Load conversations when identity is selected
-  useEffect(() => {
-    if (selectedIdentity) {
-      loadConversations();
-    }
-  }, [selectedIdentity]);
-
-
-  const loadIdentities = async () => {
-    try {
-      setLoading(true);
-      const response = await inboxService.getIdentities();
-      console.log('Identities response:', response);
-      // Handle different response structures
-      const identities = response.identities || response.data || response || [];
-      console.log('Identities array:', identities);
-      setIdentities(identities);
-      if (identities.length > 0) {
-        console.log('Setting selected identity to:', identities[0].id);
-        setSelectedIdentity(identities[0].id);
-      } else {
-        console.warn('No identities found. Please add an identity first.');
-        toast.warning('No identities found. Please add an identity first.');
-      }
-    } catch (error) {
-      console.error('Error loading identities:', error);
-      setError('Failed to load identities');
-      toast.error('Failed to load identities');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       setLoading(true);
       console.log('Loading conversations with selectedIdentity:', selectedIdentity);
@@ -128,6 +89,43 @@ export default function InboxPage() {
       console.error('Error loading conversations:', error);
       setError('Failed to load conversations');
       toast.error('Failed to load conversations');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedIdentity]);
+
+  // Load identities and conversations on component mount
+  useEffect(() => {
+    loadIdentities();
+  }, []);
+
+  // Load conversations when identity is selected
+  useEffect(() => {
+    if (selectedIdentity) {
+      loadConversations();
+    }
+  }, [selectedIdentity, loadConversations]);
+
+  const loadIdentities = async () => {
+    try {
+      setLoading(true);
+      const response = await inboxService.getIdentities();
+      console.log('Identities response:', response);
+      // Handle different response structures
+      const identities = response.identities || response.data || response || [];
+      console.log('Identities array:', identities);
+      setIdentities(identities);
+      if (identities.length > 0) {
+        console.log('Setting selected identity to:', identities[0].id);
+        setSelectedIdentity(identities[0].id);
+      } else {
+        console.warn('No identities found. Please add an identity first.');
+        toast.warning('No identities found. Please add an identity first.');
+      }
+    } catch (error) {
+      console.error('Error loading identities:', error);
+      setError('Failed to load identities');
+      toast.error('Failed to load identities');
     } finally {
       setLoading(false);
     }

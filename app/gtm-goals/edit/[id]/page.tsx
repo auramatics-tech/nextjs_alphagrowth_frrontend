@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MainLayout from '../../../../components/layout/MainLayout/MainLayout';
@@ -40,14 +40,7 @@ const GTMEditPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // Load GTM data on component mount
-  useEffect(() => {
-    if (id) {
-      loadGTMData();
-    }
-  }, [id]);
-
-  const loadGTMData = async () => {
+  const loadGTMData = useCallback(async () => {
     try {
       setInitialLoading(true);
       setError(null);
@@ -89,7 +82,14 @@ const GTMEditPage = () => {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [id]);
+
+  // Load GTM data on component mount
+  useEffect(() => {
+    if (id) {
+      loadGTMData();
+    }
+  }, [id, loadGTMData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

@@ -266,9 +266,9 @@ export default function BusinessProfilePage() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.6, delay: 0.2 }}
                             >
-                                <h2 className="text-2xl font-semibold text-[#1E1E1E]">Let's Perfect Your Business Profile</h2>
+                                <h2 className="text-2xl font-semibold text-[#1E1E1E]">Let&apos;s Perfect Your Business Profile</h2>
                                 <p className="mt-2 text-base text-gray-500">
-                                    We've analyzed your website to understand your business. Now let's refine the details to create the perfect ICP suggestions.
+                                    We&apos;ve analyzed your website to understand your business. Now let&apos;s refine the details to create the perfect ICP suggestions.
                                 </p>
                                 <ul className="mt-8 space-y-6">
                                     <li className="flex items-start gap-4">

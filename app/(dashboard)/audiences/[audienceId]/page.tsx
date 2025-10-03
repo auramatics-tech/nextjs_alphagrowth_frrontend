@@ -289,7 +289,7 @@ const AudienceDetailPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Audience Not Found</h1>
-          <p className="text-gray-600 mb-6">The audience you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-6">The audience you&apos;re looking for doesn&apos;t exist.</p>
           <Link 
             href="/audiences"
             className="px-4 py-2 bg-gradient-to-r from-orange-500 to-blue-500 text-white rounded-lg hover:from-orange-600 hover:to-blue-600 transition-all flex items-center gap-2 mx-auto w-fit"
