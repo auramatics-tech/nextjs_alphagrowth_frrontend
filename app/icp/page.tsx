@@ -5,14 +5,13 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
 import {
-  Search, Filter, ArrowUpDown, Plus, Edit, Eye, X, MapPin, Building, MoreVertical, Trash2
+  Search, Filter, ArrowUpDown, Plus, Edit, Eye, X, MapPin, Building, MoreVertical, Trash2, Loader2
 } from 'lucide-react';
+import { icpService, ICP } from '../../services/icpService';
+import { toast } from 'react-hot-toast';
 
 // Types
-interface ICP {
-  id: string;
-  name: string;
-  title: string;
+interface ProcessedICP extends ICP {
   location: string;
   company: string;
   industry: string;
@@ -20,53 +19,56 @@ interface ICP {
   techStack: string[];
 }
 
-const handleViewICPDetail = (id: string) => {
-  console.log('View ICP detail:', id);
-  // TODO: Navigate to ICP detail page
-};
-
-// Mock Data
-const mockICPs: ICP[] = [
-  {
-    id: '1',
-    name: 'Emily Chen',
-    title: 'Chief Data Officer',
-    location: 'San Francisco, United States',
-    company: 'https://aidata-mind.com/',
-    industry: 'Professional, Scientific, and Technical Services - Artificial Intelligence & Data Analytics Consulting',
-    target: 'Enterprise clients in tech and finance sectors',
-    techStack: ['Salesforce', 'Tableau', 'Python']
-  },
-  {
-    id: '2',
-    name: 'Sophia Chang',
-    title: 'Chief Data Officer',
-    location: 'San Francisco, United States',
-    company: 'https://aidata-mind.com/',
-    industry: 'Professional, Scientific, and Technical Services - Artificial Intelligence & Data Analytics Consulting',
-    target: 'Enterprise clients in need of predictive analytics solutions',
-    techStack: ['Cloud-based data platforms', 'AI integration tools']
-  },
-  {
-    id: '3',
-    name: 'Sophia Chen',
-    title: 'Chief Data Officer',
-    location: 'San Francisco, United States',
-    company: 'https://aidata-mind.com/',
-    industry: 'Professional, Scientific, and Technical Services - Artificial Intelligence & Data Analytics Consulting',
-    target: 'Enterprise clients',
-    techStack: ['Advanced data analytics platforms']
-  }
-];
-
 export default function IcpListingPage() {
+  const [icps, setIcps] = useState<ProcessedICP[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
+  // Load ICPs on component mount
+  useEffect(() => {
+    loadICPs();
+  }, []);
+
+  const loadICPs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await icpService.getICPList();
+      
+      if (response.success) {
+        const processedICPs = response.data.map(processICPData);
+        setIcps(processedICPs);
+      } else {
+        setError(response.message || 'Failed to load ICPs');
+        toast.error('Failed to load ICPs');
+      }
+    } catch (error) {
+      console.error('Error loading ICPs:', error);
+      setError('Failed to load ICPs');
+      toast.error('Failed to load ICPs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process ICP data to match the UI format
+  const processICPData = (icp: ICP): ProcessedICP => {
+    return {
+      ...icp,
+      location: `${icp.location_city}, ${icp.location_country}`,
+      company: icp.business?.companyName || 'Unknown Company',
+      industry: icp.business?.industry || 'Unknown Industry',
+      target: icp.company_targets || 'No target specified',
+      techStack: icp.tech_stack_current ? icp.tech_stack_current.split(',').map(tech => tech.trim()) : []
+    };
+  };
 
   const handleEdit = (id: string) => {
     console.log('Edit ICP:', id);
+    // TODO: Navigate to edit page
   };
 
   const handleView = (id: string) => {
@@ -77,9 +79,18 @@ export default function IcpListingPage() {
     setStatusFilter('All');
   };
 
-  const handleDelete = (id: string) => {
-    console.log('Delete ICP:', id);
-    setOpenDropdown(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await icpService.deleteICP(id);
+      toast.success('ICP deleted successfully');
+      // Reload the list
+      loadICPs();
+    } catch (error) {
+      console.error('Error deleting ICP:', error);
+      toast.error('Failed to delete ICP');
+    } finally {
+      setOpenDropdown(null);
+    }
   };
 
   const toggleDropdown = (id: string) => {
@@ -120,6 +131,18 @@ export default function IcpListingPage() {
       return url;
     }
   };
+
+  // Filter ICPs based on search query
+  const filteredICPs = icps.filter(icp => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      icp.name.toLowerCase().includes(searchLower) ||
+      icp.title.toLowerCase().includes(searchLower) ||
+      icp.company.toLowerCase().includes(searchLower) ||
+      icp.industry.toLowerCase().includes(searchLower) ||
+      icp.target.toLowerCase().includes(searchLower)
+    );
+  });
 
   const headerActions = (
     <Link href="/icp/new">
@@ -185,9 +208,47 @@ export default function IcpListingPage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+              <span className="ml-2 text-gray-600">Loading ICPs...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="text-center py-12">
+              <div className="text-red-500 mb-4">{error}</div>
+              <button
+                onClick={loadICPs}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && filteredICPs.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-500 mb-4">
+                {searchQuery ? 'No ICPs found matching your search.' : 'No ICPs found. Create your first ICP to get started.'}
+              </div>
+              {!searchQuery && (
+                <Link href="/icp/new">
+                  <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                    Create ICP
+                  </button>
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* ICP Cards */}
-          <div className="space-y-4">
-            {mockICPs.map((icp, index) => (
+          {!loading && !error && filteredICPs.length > 0 && (
+            <div className="space-y-4">
+              {filteredICPs.map((icp, index) => (
               <motion.div
                 key={icp.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -291,8 +352,9 @@ export default function IcpListingPage() {
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
       </motion.div>
     </MainLayout>
   );

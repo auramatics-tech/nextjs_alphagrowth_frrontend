@@ -1,53 +1,45 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import MainLayout from '../../components/layout/MainLayout/MainLayout';
 import {
-  Search, Filter, ArrowUpDown, Plus, MoreVertical, Edit, Trash2, Target, Clock, TrendingUp
+  Search, Filter, ArrowUpDown, Plus, MoreVertical, Edit, Trash2, Target, Clock, TrendingUp, Loader2
 } from 'lucide-react';
+import { gtmService, GTMGoal } from '../../services/gtmService';
+import { toast } from 'react-hot-toast';
 
-// Mock data for GTM Goals
-const mockGoals = [
-  {
-    id: 1,
-    name: 'DataMind AI Go-to-Market Launch',
-    status: 'Active',
-    progress: 60,
-    targeting: 'Mid-market SaaS',
-    duration: '4 Months',
-    mainObjective: 'Establish DataMind AI as the go-to AI analytics platform for mid-market SaaS companies by Q2 2024, achieving 25% market penetration and $2M ARR.',
-    painPoint: 'Chief Data Officers in mid-market SaaS face dependency on technical teams for data insights, causing delays in decision-making and missed opportunities for growth optimization.',
-    valueProposition: 'DataMind AI provides an AI-driven platform that enables non-technical teams to generate actionable insights from complex datasets, reducing time-to-insight by 75% and increasing data-driven decision velocity.',
-  },
-  {
-    id: 2,
-    name: 'Enterprise Security Solutions Expansion',
-    status: 'Planning',
-    progress: 25,
-    targeting: 'Fortune 500',
-    duration: '8 Months',
-    mainObjective: 'Expand our security solutions portfolio to capture 15% of the enterprise cybersecurity market, focusing on Fortune 500 companies with complex compliance requirements.',
-    painPoint: 'Enterprise security teams struggle with fragmented tools and manual compliance reporting, leading to security gaps and regulatory violations that cost millions in penalties.',
-    valueProposition: 'Our integrated security platform provides end-to-end protection with automated compliance reporting, reducing security incidents by 90% and compliance costs by 60%.',
-  },
-  {
-    id: 3,
-    name: 'Healthcare Digital Transformation',
-    status: 'Active',
-    progress: 80,
-    targeting: 'Healthcare Systems',
-    duration: '6 Months',
-    mainObjective: 'Become the leading digital transformation partner for healthcare systems, targeting 50 hospital networks and achieving $5M in healthcare-specific revenue.',
-    painPoint: 'Healthcare systems are overwhelmed with legacy systems and regulatory requirements, making digital transformation slow and costly while patient care suffers.',
-    valueProposition: 'Our healthcare-specific platform accelerates digital transformation while maintaining HIPAA compliance, improving patient outcomes by 40% and operational efficiency by 55%.',
-  }
-];
+// Types
+interface ProcessedGTMGoal extends GTMGoal {
+  name: string;
+  status: string;
+  progress: number;
+  targeting: string;
+  duration: string;
+  mainObjective: string;
+  painPoint: string;
+  valueProposition: string;
+}
 
 // GTM Goal Row Component
-const GTMGoalRow: React.FC<{ goal: any }> = ({ goal }) => {
+const GTMGoalRow: React.FC<{ goal: ProcessedGTMGoal; onEdit: (id: string) => void; onDelete: (id: string) => void }> = ({ goal, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showActions) {
+        setShowActions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showActions]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -111,18 +103,51 @@ const GTMGoalRow: React.FC<{ goal: any }> = ({ goal }) => {
             </div>
           </div>
 
-          {/* Actions Menu */}
+          {/* Actions */}
           <div className="flex items-center space-x-2">
+            {/* Direct Edit Button (matching frontend_old) */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(goal.id);
+              }}
+              className="px-3 py-1 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Edit
+            </button>
+            
+            {/* More Actions Menu */}
             <div className="relative">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Handle actions menu
+                  setShowActions(!showActions);
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <MoreVertical className="w-4 h-4 text-gray-400" />
               </button>
+              
+              {showActions && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[120px]"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(goal.id);
+                      setShowActions(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
@@ -162,8 +187,85 @@ const GTMGoalRow: React.FC<{ goal: any }> = ({ goal }) => {
 };
 
 const GTMStrategyHub = () => {
+  const [goals, setGoals] = useState<ProcessedGTMGoal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  // Load GTM goals on component mount
+  useEffect(() => {
+    loadGTMGoals();
+  }, []);
+
+  const loadGTMGoals = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await gtmService.getGTMList();
+      
+      if (response.success) {
+        const processedGoals = response.data.map(processGTMData);
+        setGoals(processedGoals);
+      } else {
+        setError(response.message || 'Failed to load GTM goals');
+        toast.error('Failed to load GTM goals');
+      }
+    } catch (error) {
+      console.error('Error loading GTM goals:', error);
+      setError('Failed to load GTM goals');
+      toast.error('Failed to load GTM goals');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process GTM data to match the UI format
+  const processGTMData = (gtm: GTMGoal): ProcessedGTMGoal => {
+    return {
+      ...gtm,
+      name: gtm.gtmName || 'Unnamed GTM Goal',
+      status: 'Active', // Default status since API doesn't provide this
+      progress: Math.floor(Math.random() * 100), // Random progress for demo
+      targeting: gtm.targetCount || 'Not specified',
+      duration: gtm.gtmDuration || 'Not specified',
+      mainObjective: gtm.mainObjectives || 'No objective specified',
+      painPoint: gtm.keyCustomerPainPoint || 'No pain point specified',
+      valueProposition: gtm.coreValueProposition || 'No value proposition specified'
+    };
+  };
+
+  // Filter goals based on search query
+  const filteredGoals = goals.filter(goal => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      goal.name.toLowerCase().includes(searchLower) ||
+      goal.mainObjective.toLowerCase().includes(searchLower) ||
+      goal.targeting.toLowerCase().includes(searchLower) ||
+      goal.painPoint.toLowerCase().includes(searchLower) ||
+      goal.valueProposition.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Handle edit
+  const handleEdit = (id: string) => {
+    console.log('Edit GTM goal:', id);
+    // Navigate to edit page (matching frontend_old pattern)
+    window.location.href = `/gtm-goals/edit/${id}`;
+  };
+
+  // Handle delete
+  const handleDelete = async (id: string) => {
+    try {
+      await gtmService.deleteGTMGoal(id);
+      toast.success('GTM goal deleted successfully');
+      // Reload the list
+      loadGTMGoals();
+    } catch (error) {
+      console.error('Error deleting GTM goal:', error);
+      toast.error('Failed to delete GTM goal');
+    }
+  };
 
   const headerActions = (
     <Link href="/gtm-goals/new">
@@ -216,12 +318,56 @@ const GTMStrategyHub = () => {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+            <span className="ml-2 text-gray-600">Loading GTM goals...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center py-12">
+            <div className="text-red-500 mb-4">{error}</div>
+            <button
+              onClick={loadGTMGoals}
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && filteredGoals.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 mb-4">
+              {searchQuery ? 'No GTM goals found matching your search.' : 'No GTM goals found. Create your first GTM goal to get started.'}
+            </div>
+            {!searchQuery && (
+              <Link href="/gtm-goals/new">
+                <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                  Create GTM Goal
+                </button>
+              </Link>
+            )}
+          </div>
+        )}
+
         {/* Goals List */}
-        <div className="space-y-4">
-          {mockGoals.map((goal) => (
-            <GTMGoalRow key={goal.id} goal={goal} />
-          ))}
-        </div>
+        {!loading && !error && filteredGoals.length > 0 && (
+          <div className="space-y-4">
+            {filteredGoals.map((goal) => (
+              <GTMGoalRow 
+                key={goal.id} 
+                goal={goal} 
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )}
       </motion.div>
     </MainLayout>
   );
