@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 interface MessageInputProps {
   selectedChannel: 'linkedin' | 'email';
   onChannelChange: (channel: 'linkedin' | 'email') => void;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, subject?: string) => void;
 }
 
 export default function MessageInput({ 
@@ -15,13 +15,15 @@ export default function MessageInput({
   onSendMessage 
 }: MessageInputProps) {
   const [message, setMessage] = useState('');
+  const [subject, setSubject] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = () => {
     if (message.trim()) {
-      onSendMessage(message.trim());
+      onSendMessage(message.trim(), selectedChannel === 'email' ? subject.trim() : undefined);
       setMessage('');
+      setSubject('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -80,6 +82,19 @@ export default function MessageInput({
           </button>
         </div>
       </div>
+
+      {/* Email Subject Input */}
+      {selectedChannel === 'email' && (
+        <div className="mb-3">
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Email subject..."
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          />
+        </div>
+      )}
 
       {/* Message Input */}
       <div className="relative">

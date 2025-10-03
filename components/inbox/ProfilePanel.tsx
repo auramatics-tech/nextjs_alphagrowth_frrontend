@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface Contact {
@@ -17,13 +17,42 @@ interface Contact {
 }
 
 interface ProfilePanelProps {
-  contact: Contact;
+  contact?: Contact | null;
   onClose: () => void;
 }
 
 export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContact, setEditedContact] = useState(contact);
+  const [editedContact, setEditedContact] = useState(contact || {
+    name: 'Unknown Contact',
+    avatar: '/avatars/default-avatar.jpg',
+    company: 'Unknown Company',
+    title: 'Unknown Title',
+    verified: false,
+    leadStatus: 'Not Set',
+    dealValue: 'Not Set',
+    emails: [],
+    linkedinUrl: '',
+    campaign: 'No Campaign'
+  });
+
+  // Update editedContact when contact prop changes
+  useEffect(() => {
+    if (contact) {
+      setEditedContact(contact);
+    }
+  }, [contact]);
+
+  // Don't render if no contact data
+  if (!contact) {
+    return (
+      <div className="w-80 bg-white border-l border-gray-100 flex flex-col">
+        <div className="p-4 text-center">
+          <p className="text-gray-500">No contact selected</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSave = () => {
     // Handle save logic here
@@ -80,8 +109,8 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
           <div className="relative inline-block">
             <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden mx-auto mb-3">
               <img 
-                src={editedContact.avatar} 
-                alt={editedContact.name}
+                src={editedContact?.avatar || '/avatars/default-avatar.jpg'} 
+                alt={editedContact?.name || 'Contact'}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -91,14 +120,14 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
                 }}
               />
               <div className="w-full h-full bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-xl" style={{ display: 'none' }}>
-                {editedContact.name.split(' ').map(n => n[0]).join('')}
+                {(editedContact?.name || 'Contact').split(' ').map(n => n[0]).join('')}
               </div>
             </div>
             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full"></div>
           </div>
           
-          <h4 className="text-lg font-bold text-gray-900">{editedContact.name}</h4>
-          <p className="text-sm text-gray-600">At {editedContact.company}</p>
+          <h4 className="text-lg font-bold text-gray-900">{editedContact?.name || 'Unknown Contact'}</h4>
+          <p className="text-sm text-gray-600">At {editedContact?.company || 'Unknown Company'}</p>
         </div>
 
         {/* Enrichment Section */}
@@ -125,12 +154,12 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
           {isEditing ? (
             <input
               type="text"
-              value={editedContact.dealValue}
+              value={editedContact?.dealValue || ''}
               onChange={(e) => handleFieldChange('dealValue', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
             />
           ) : (
-            <div className="text-sm font-semibold text-gray-900">{editedContact.dealValue}</div>
+            <div className="text-sm font-semibold text-gray-900">{editedContact?.dealValue || 'Not Set'}</div>
           )}
         </div>
 
@@ -149,7 +178,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
           </div>
           {isEditing ? (
             <select
-              value={editedContact.leadStatus}
+              value={editedContact?.leadStatus || 'Not Set'}
               onChange={(e) => handleFieldChange('leadStatus', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
             >
@@ -159,8 +188,8 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
               <option value="Cold">Cold</option>
             </select>
           ) : (
-            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${getLeadStatusColor(editedContact.leadStatus)}`}>
-              {editedContact.leadStatus}
+            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${getLeadStatusColor(editedContact?.leadStatus || 'Not Set')}`}>
+              {editedContact?.leadStatus || 'Not Set'}
             </span>
           )}
         </div>
@@ -173,9 +202,9 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
             {isEditing ? (
               <input
                 type="text"
-                value={editedContact.name.split(' ')[0]}
+                value={(editedContact?.name || '').split(' ')[0]}
                 onChange={(e) => {
-                  const lastName = editedContact.name.split(' ').slice(1).join(' ');
+                  const lastName = (editedContact?.name || '').split(' ').slice(1).join(' ');
                   handleFieldChange('name', `${e.target.value} ${lastName}`);
                 }}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -183,7 +212,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
             ) : (
               <input
                 type="text"
-                value={editedContact.name.split(' ')[0]}
+                value={(editedContact?.name || '').split(' ')[0]}
                 readOnly
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900"
               />
@@ -196,9 +225,9 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
             {isEditing ? (
               <input
                 type="text"
-                value={editedContact.name.split(' ').slice(1).join(' ')}
+                value={(editedContact?.name || '').split(' ').slice(1).join(' ')}
                 onChange={(e) => {
-                  const firstName = editedContact.name.split(' ')[0];
+                  const firstName = (editedContact?.name || '').split(' ')[0];
                   handleFieldChange('name', `${firstName} ${e.target.value}`);
                 }}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -206,7 +235,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
             ) : (
               <input
                 type="text"
-                value={editedContact.name.split(' ').slice(1).join(' ')}
+                value={(editedContact?.name || '').split(' ').slice(1).join(' ')}
                 readOnly
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900"
               />
@@ -219,7 +248,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
             {isEditing ? (
               <input
                 type="email"
-                value={editedContact.emails[0] || ''}
+                value={editedContact?.emails?.[0] || ''}
                 onChange={(e) => handleFieldChange('emails', [e.target.value])}
                 placeholder="Enter email address"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -227,7 +256,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
             ) : (
               <input
                 type="text"
-                value={editedContact.emails[0] || ''}
+                value={editedContact?.emails?.[0] || ''}
                 readOnly
                 placeholder="No email available"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900"
@@ -247,7 +276,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
               {isEditing ? (
                 <input
                   type="url"
-                  value={editedContact.linkedinUrl}
+                  value={editedContact?.linkedinUrl || ''}
                   onChange={(e) => handleFieldChange('linkedinUrl', e.target.value)}
                   placeholder="https://linkedin.com/in/username"
                   className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -255,7 +284,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
               ) : (
                 <input
                   type="text"
-                  value={editedContact.linkedinUrl}
+                  value={editedContact?.linkedinUrl || ''}
                   readOnly
                   className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900"
                 />
@@ -275,7 +304,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
               {isEditing ? (
                 <input
                   type="tel"
-                  value={editedContact.phone || ''}
+                  value={editedContact?.phone || ''}
                   onChange={(e) => handleFieldChange('phone', e.target.value)}
                   placeholder="Enter phone number"
                   className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -283,7 +312,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
               ) : (
                 <input
                   type="text"
-                  value={editedContact.phone || ''}
+                  value={editedContact?.phone || ''}
                   readOnly
                   placeholder="No phone number available"
                   className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-900"
