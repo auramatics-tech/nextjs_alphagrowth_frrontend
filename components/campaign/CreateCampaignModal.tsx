@@ -56,7 +56,7 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
       console.log('Loading GTM strategies...');
       const strategies = await gtmService.getGTMStrategies();
       console.log('GTM strategies loaded:', strategies);
-      setGtmStrategies(strategies);
+      setGtmStrategies(strategies.gtmStrategies);
     } catch (err: any) {
       console.error('Error loading GTM strategies:', err);
       const errorMessage = err?.response?.data?.message || err?.message || 'Failed to load GTM strategies';
