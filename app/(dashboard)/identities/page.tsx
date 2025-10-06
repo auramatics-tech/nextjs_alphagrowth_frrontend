@@ -241,7 +241,7 @@ export default function IdentitiesPage() {
             // identityService.getIdentities returns Identity[] (normalized service)
             const list = await identityService.getIdentities();
             if (Array.isArray(list)) {
-                setIdentities(list);
+                setIdentities(list as any);
             } else {
                 setIdentities([]);
                 setError('Failed to load identities');
@@ -275,7 +275,7 @@ export default function IdentitiesPage() {
         const runOAuthFlow = async () => {
             try {
                 // 1️⃣ Call OAuth API
-                await identityService.googleOAuth({ code, identity_id: identityId });
+                await (identityService as any).googleOAuth({ code, identity_id: identityId });
 
                 // 2️⃣ Redirect to /identities without query params
                 window.history.replaceState({}, document.title, "/identities");
@@ -298,11 +298,11 @@ export default function IdentitiesPage() {
     const handleAddIdentity = async (identityData: any) => {
         try {
             const response = await identityService.createIdentity(identityData);
-            if (response.success) {
+            if ((response as any).success) {
                 await loadIdentities();
                 setIsModalOpen(false);
             } else {
-                setError(response.message || 'Failed to create identity');
+                setError((response as any).message || 'Failed to create identity');
             }
         } catch (err: any) {
             console.error('Error creating identity:', err);
@@ -328,7 +328,7 @@ export default function IdentitiesPage() {
     const handleLinkedInSignout = async (identityId: string) => {
         try {
             setIsSigningOut(identityId);
-            await identityService.signout(identityId, { type: 'LINKEDIN' });
+            await (identityService as any).signout(identityId, { type: 'LINKEDIN' });
             await loadIdentities();
         } catch (err: any) {
             console.error('LinkedIn signout failed:', err);
@@ -343,7 +343,7 @@ export default function IdentitiesPage() {
             setIsSigningOut(identityId);
             const identity = identities.find(id => id.id === identityId);
             const providerType = identity?.email_detail?.provider_type || 'GMAIL';
-            await identityService.signout(identityId, { type: providerType as any });
+            await (identityService as any).signout(identityId, { type: providerType as any });
             await loadIdentities();
         } catch (err: any) {
             console.error('Email signout failed:', err);

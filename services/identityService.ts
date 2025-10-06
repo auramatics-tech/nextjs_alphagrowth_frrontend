@@ -25,6 +25,19 @@ export interface UpdateIdentityRequest {
   email?: string;
 }
 
+export interface SmtpCredentialsRequest {
+  identity_id: string;
+  data: {
+    smtp_server: string;
+    smtp_port: number;
+    smtp_username: string;
+    smtp_password: string;
+    imap_server?: string;
+    imap_port?: number;
+  };
+  type: 'SMTP/IMAP';
+}
+
 export const identityService = {
   /**
    * Get all identities
@@ -125,6 +138,58 @@ export const identityService = {
       return response.data;
     } catch (error) {
       console.error('Error attaching identity to campaign:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Save SMTP credentials for an identity
+   */
+  saveSmtpCredentials: async (data: SmtpCredentialsRequest): Promise<any> => {
+    try {
+      const response = await apiClient.post('/pub/v1/identities/smtp', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error saving SMTP credentials:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Connect LinkedIn for an identity
+   */
+  connectLinkedIn: async (data: { identity_id: string; data: any; type: string }): Promise<any> => {
+    try {
+      const response = await apiClient.post('/pub/v1/identities/linkedin', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error connecting LinkedIn:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check connection status for an identity
+   */
+  checkConnectionStatus: async (connectionStatusId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/pub/v1/identities/connection-status/${connectionStatusId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking connection status:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Verify LinkedIn captcha
+   */
+  verifyLinkedInCaptcha: async (data: { code: string; type: string; connection_id: string }): Promise<any> => {
+    try {
+      const response = await apiClient.post('/pub/v1/identities/verify-captcha', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying LinkedIn captcha:', error);
       throw error;
     }
   }

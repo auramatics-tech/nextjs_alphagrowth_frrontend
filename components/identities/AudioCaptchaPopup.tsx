@@ -31,7 +31,7 @@ export default function AudioCaptchaPopup({
         const fetchCaptcha = async () => {
             try {
                 setIsLoading(true);
-                const response = await identityService.checkConnectionStatus(connectionStatusId);
+                const response = await (identityService as any).checkConnectionStatus(connectionStatusId);
                 const { mp3Url, questionText } = response.capcha_data || {};
                 setAudioUrl(mp3Url || '');
                 setQuestionText(questionText || '');
@@ -73,7 +73,7 @@ export default function AudioCaptchaPopup({
             setIsLoading(true);
             setError('');
 
-            const response = await identityService.verifyLinkedInCaptcha({
+            const response = await (identityService as any).verifyLinkedInCaptcha({
                 code: code.trim(),
                 type: 'capcha',
                 connection_id: connectionStatusId
@@ -141,7 +141,7 @@ export default function AudioCaptchaPopup({
                     {/* Content */}
                     <div className="p-6">
                         <div className="text-center mb-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Let's do a quick security check</h3>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Let&apos;s do a quick security check</h3>
                             <p className="text-gray-600">
                                 Listen to the audio and enter the number you hear.
                             </p>

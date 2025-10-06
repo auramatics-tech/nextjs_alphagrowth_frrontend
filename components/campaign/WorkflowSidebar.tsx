@@ -97,7 +97,7 @@ interface DraggableNodeProps {
     id: string;
     title: string;
     subtitle: string;
-    icon: React.ComponentType<{ size?: number; className?: string }>;
+    icon: any; // Changed to any to accommodate Lucide icons
     color: string;
   };
   onDragStart?: (nodeId: string) => void;

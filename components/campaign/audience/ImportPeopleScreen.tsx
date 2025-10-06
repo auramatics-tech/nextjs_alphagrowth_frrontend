@@ -131,7 +131,7 @@ const ImportPeopleScreen: React.FC<ImportPeopleScreenProps> = ({
               />
               <div className="text-sm text-gray-600 space-y-1">
                 <p>1. Click on the 3 dots near to the Post <span className="font-bold">...</span></p>
-                <p>2. On the menu, select "<span className="font-bold">Copy link to the post</span>"</p>
+                <p>2. On the menu, select &quot;<span className="font-bold">Copy link to the post</span>&quot;</p>
                 <p>3. Paste the link here</p>
               </div>
             </div>
@@ -255,7 +255,7 @@ const ImportPeopleScreen: React.FC<ImportPeopleScreenProps> = ({
               />
               <div className="text-sm text-gray-600 space-y-1">
                 <p>1. Click on the 3 dots near to the Post <span className="font-bold">...</span></p>
-                <p>2. On the menu, select "<span className="font-bold">Copy link to the post</span>"</p>
+                <p>2. On the menu, select &quot;<span className="font-bold">Copy link to the post</span>&quot;</p>
                 <p>3. Paste the link here</p>
               </div>
             </div>

@@ -26,7 +26,7 @@ const OnboardingStepper = ({ currentStep, totalSteps = 6 }: { currentStep: numbe
     </div>
 );
 
-const FeatureHighlight = ({ icon: Icon, title, description }) => (
+const FeatureHighlight = ({ icon: Icon, title, description }: any) => (
     <motion.div 
         className="flex items-start gap-4"
         variants={{

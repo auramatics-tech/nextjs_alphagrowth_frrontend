@@ -49,21 +49,12 @@ const GTMEditPage = () => {
       if (response.success) {
         const data = response.data;
         
-        // Parse goals safely
-        let parsedGoals = [];
-        try {
-          parsedGoals = typeof data.goals === 'string' ? JSON.parse(data.goals) : data.goals;
-        } catch (e) {
-          console.warn('Failed to parse goals:', e);
-          parsedGoals = [];
-        }
-        
         // Update form state with fetched data
         setForm({
           name: data.gtmName || '',
           objective: data.mainObjectives || '',
-          success_metric: parsedGoals[0]?.goal || 'deals_won',
-          goalCount: parsedGoals[0]?.count || '',
+          success_metric: 'deals_won', // Default value since goals parsing is removed
+          goalCount: '', // Default value since goals parsing is removed
           target: data.targetCount || '',
           pain_point: data.keyCustomerPainPoint || '',
           value_prop: data.coreValueProposition || '',

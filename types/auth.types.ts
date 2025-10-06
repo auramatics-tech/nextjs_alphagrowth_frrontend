@@ -1,5 +1,7 @@
 import { User, AuthTokens, LoginCredentials, SignupData } from './common.types';
 
+export type { LoginCredentials, SignupData, User, AuthTokens };
+
 export interface AuthState {
   user: User | null;
   tokens: AuthTokens | null;

@@ -49,7 +49,7 @@ export default function ConnectionStatusPoller({
             console.log('Polling connection status for ID:', connectionStatusId);
             
             try {
-                const response = await identityService.checkConnectionStatus(connectionStatusId);
+                const response = await (identityService as any).checkConnectionStatus(connectionStatusId);
                 console.log('Polling response:', response);
                 
                 const connectionStatus = response?.connection_status as ConnectionStatus;

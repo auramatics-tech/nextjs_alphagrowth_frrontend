@@ -2,7 +2,6 @@
 export { default as CreateCampaignModal } from './CreateCampaignModal';
 export type { 
   CampaignFormData, 
-  GTMStrategy, 
   CreateCampaignModalProps 
 } from './CreateCampaignModal';
 

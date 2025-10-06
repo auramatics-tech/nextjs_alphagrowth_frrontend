@@ -173,7 +173,7 @@ export const useChannelsData = (userId: string, filters: DashboardFilters, refre
       // Ensure data is an array
       let processedData = response;
       if (response && typeof response === 'object' && !Array.isArray(response)) {
-        processedData = response.channels || response.data || response.results || [];
+        processedData = (response as any).channels || (response as any).data || (response as any).results || [];
       }
       
       if (!Array.isArray(processedData)) {
@@ -267,7 +267,7 @@ export const useTasksData = (userId: string, filters: DashboardFilters, refreshT
       // Ensure data is an array
       let processedData = response;
       if (response && typeof response === 'object' && !Array.isArray(response)) {
-        processedData = response.tasks || response.data || response.results || [];
+        processedData = (response as any).tasks || (response as any).data || (response as any).results || [];
       }
       
       if (!Array.isArray(processedData)) {

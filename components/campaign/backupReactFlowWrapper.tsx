@@ -37,7 +37,7 @@ interface ReactFlowWrapperProps {
 
 // Wrap the component with forwardRef
 const ReactFlowWrapper = forwardRef<ReactFlowWrapperRef, ReactFlowWrapperProps>(
-  ({ campaignId, onNodeClick, setSelectedNodeId: setSelectedNodeIdProp, onDurationChange: onDurationChangeProp }, ref) => {
+  function ReactFlowWrapper({ campaignId, onNodeClick, setSelectedNodeId: setSelectedNodeIdProp, onDurationChange: onDurationChangeProp }, ref) {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [showNodeSelector, setShowNodeSelector] = useState(false);
@@ -1073,11 +1073,11 @@ const ReactFlowWrapper = forwardRef<ReactFlowWrapperRef, ReactFlowWrapperProps>(
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Start Building Your Workflow</h3>
               <p className="text-gray-600 mb-4">
-                Drag nodes from the sidebar or click "Add New Step" to begin creating your campaign workflow.
+                Drag nodes from the sidebar or click &quot;Add New Step&quot; to begin creating your campaign workflow.
               </p>
               <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                 <span>💡</span>
-                <span>Tip: Try dragging a "Send Email" node to get started</span>
+                <span>Tip: Try dragging a &quot;Send Email&quot; node to get started</span>
               </div>
             </div>
           </div>

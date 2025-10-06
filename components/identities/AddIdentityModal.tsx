@@ -18,9 +18,17 @@ const saveDraft = (data: Partial<CreateIdentityRequest>) => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
 };
 
-const loadDraft = (): Partial<CreateIdentityRequest> | null => {
+const loadDraft = (): CreateIdentityRequest | null => {
     const draft = localStorage.getItem(DRAFT_KEY);
-    return draft ? JSON.parse(draft) : null;
+    if (draft) {
+        const parsed = JSON.parse(draft);
+        return {
+            name: parsed.name || '',
+            company_name: parsed.company_name || '',
+            email: parsed.email || ''
+        };
+    }
+    return null;
 };
 
 const clearDraft = () => {
@@ -32,10 +40,10 @@ const Step1Basics = ({
     setFormData 
 }: { 
     formData: CreateIdentityRequest; 
-    setFormData: (data: CreateIdentityRequest) => void; 
+    setFormData: React.Dispatch<React.SetStateAction<CreateIdentityRequest>>; 
 }) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        setFormData((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
     return (
@@ -102,7 +110,7 @@ const Step2Connect = ({
     setFormData 
 }: { 
     formData: CreateIdentityRequest; 
-    setFormData: (data: CreateIdentityRequest) => void; 
+    setFormData: React.Dispatch<React.SetStateAction<CreateIdentityRequest>>; 
 }) => {
     return (
         <div className="space-y-6">

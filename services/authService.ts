@@ -7,10 +7,10 @@ export interface UserProfile {
   email: string;
   name: string;
   avatar?: string;
-  role?: string;
+  role: 'admin' | 'user';
   status?: number;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   // Add other user fields as needed
 }
 
@@ -51,7 +51,19 @@ export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       const response = await apiClient.post('/pub/v1/onboarding/login', credentials);
-      return response.data;
+      const data = response.data;
+      
+      // Transform snake_case to camelCase
+      if (data.user) {
+        data.user = {
+          ...data.user,
+          role: (data.user.role as 'admin' | 'user') || 'user',
+          createdAt: data.user.created_at || data.user.createdAt || new Date().toISOString(),
+          updatedAt: data.user.updated_at || data.user.updatedAt || new Date().toISOString()
+        };
+      }
+      
+      return data;
     } catch (error) {
       console.error('Error logging in:', error);
       throw error;
@@ -64,7 +76,19 @@ export const authService = {
   signup: async (data: SignupData): Promise<AuthResponse> => {
     try {
       const response = await apiClient.post('/pub/v1/onboarding/register', data);
-      return response.data;
+      const responseData = response.data;
+      
+      // Transform snake_case to camelCase
+      if (responseData.user) {
+        responseData.user = {
+          ...responseData.user,
+          role: (responseData.user.role as 'admin' | 'user') || 'user',
+          createdAt: responseData.user.created_at || responseData.user.createdAt || new Date().toISOString(),
+          updatedAt: responseData.user.updated_at || responseData.user.updatedAt || new Date().toISOString()
+        };
+      }
+      
+      return responseData;
     } catch (error) {
       console.error('Error signing up:', error);
       throw error;
@@ -77,7 +101,15 @@ export const authService = {
   getProfile: async (): Promise<UserProfile> => {
     try {
       const response = await apiClient.get('/pub/v1/auth/my-profile');
-      return response.data.data || response.data;
+      const data = response.data.data || response.data;
+      
+      // Transform snake_case to camelCase
+      return {
+        ...data,
+        role: (data.role as 'admin' | 'user') || 'user',
+        createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+        updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
+      };
     } catch (error) {
       console.error('Error fetching user profile:', error);
       throw error;
@@ -90,7 +122,15 @@ export const authService = {
   getMyProfile: async (): Promise<UserProfile> => {
     try {
       const response = await apiClient.get('/pub/v1/auth/my-profile');
-      return response.data.data || response.data;
+      const data = response.data.data || response.data;
+      
+      // Transform snake_case to camelCase
+      return {
+        ...data,
+        role: (data.role as 'admin' | 'user') || 'user',
+        createdAt: data.created_at || data.createdAt || new Date().toISOString(),
+        updatedAt: data.updated_at || data.updatedAt || new Date().toISOString()
+      };
     } catch (error) {
       console.error('Error fetching user profile:', error);
       throw error;
@@ -111,7 +151,7 @@ export const authService = {
    */
   getToken: (): string | null => {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('_token') || Cookies.get('_token');
+    return localStorage.getItem('_token') || Cookies.get('_token') || null;
   },
 
   /**

@@ -64,7 +64,7 @@ export default function EmailVerificationPopup({ onClose }: EmailVerificationPop
                                     <ul className="text-sm text-blue-800 space-y-1">
                                         <li>• Open your LinkedIn mobile app</li>
                                         <li>• Look for a connection request notification</li>
-                                        <li>• Tap "Allow" or "Approve" to continue</li>
+                                        <li>• Tap &quot;Allow&quot; or &quot;Approve&quot; to continue</li>
                                     </ul>
                                 </div>
                             </div>
@@ -81,7 +81,7 @@ export default function EmailVerificationPopup({ onClose }: EmailVerificationPop
                                 onClick={onClose}
                                 className="flex-1 px-4 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
                             >
-                                I've Approved
+                                I&apos;ve Approved
                             </button>
                         </div>
                     </div>

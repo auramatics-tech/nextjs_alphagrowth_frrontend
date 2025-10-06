@@ -293,7 +293,7 @@ const CustomNode = memo(function CustomNode({ id, data, onNodeClick, onWaitTimeC
       {/* 1. The Node Card Itself */}
       <div 
         className={`relative w-64 bg-white border-2 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow ${getNodeColor()}`}
-        onClick={() => onNodeClick?.(id, { iconType: data.iconType, type: data.type, label: data.label, subtitle: data.subtitle })}
+        onClick={() => onNodeClick?.(id, { iconType: data.iconType, action_key: data.action_key, label: data.label, subtitle: data.subtitle })}
         onDragOver={(e) => {
               console.log("CustomNode onDragOver called for node:", id);
 
@@ -309,7 +309,7 @@ onNodeDrop?.(e, id)
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onNodeClick?.(id, { iconType: data.iconType, type: data.type, label: data.label, subtitle: data.subtitle });
+             onNodeClick?.(id, { iconType: data.iconType, action_key: data.action_key, label: data.label, subtitle: data.subtitle });
           }
         }}
       >

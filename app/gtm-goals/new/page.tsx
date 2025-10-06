@@ -17,7 +17,7 @@ const CreateGTMGoal = () => {
     targeting: '',
     status: 'Planning',
     duration: '',
-    linkedCampaigns: [],
+    linkedCampaigns: [] as string[],
   });
 
   const [linkedCampaigns, setLinkedCampaigns] = useState('');

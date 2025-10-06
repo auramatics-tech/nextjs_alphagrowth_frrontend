@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { campaignService, CreateCampaignRequest } from '../../services/campaignService';
-import { gtmService, GTMStrategy } from '../../services/gtmService';
+import { gtmService, GTMGoal } from '../../services/gtmService';
 
 // Types
 export interface CampaignFormData {
@@ -42,7 +42,7 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
     value_prop: ''
   });
 
-  const [gtmStrategies, setGtmStrategies] = useState<GTMStrategy[]>([]);
+  const [gtmStrategies, setGtmStrategies] = useState<GTMGoal[]>([]);
   const [loading, setLoading] = useState(false);
   const [gtmLoading, setGtmLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,22 +103,12 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({
         console.warn("Failed to parse mainObjectives", e);
       }
 
-      // Parse goals from GTM strategy
-      let parsedGoals: Array<{ goal: string; target: number }> = [];
-      try {
-        parsedGoals = typeof selectedGtm.goals === 'string'
-          ? JSON.parse(selectedGtm.goals)
-          : selectedGtm.goals || [];
-      } catch (e) {
-        console.warn("Failed to parse goals", e);
-      }
-
       setFormData(prev => ({
         ...prev,
         gtmId: selectedGtm.id,
         gtm_name: selectedGtm.gtmName,
-        objective: parsedObjectives[0] || '',
-        success_metric: parsedGoals[0]?.goal || '',
+        objective: selectedGtm.mainObjectives || '',
+        success_metric: 'Lead Generation', // Default success metric
         target: parseInt(selectedGtm.targetCount || '0') || 0,
         audience: 'Confirmed ICP', // Default as in frontend_old
         pain_point: selectedGtm.keyCustomerPainPoint || '',

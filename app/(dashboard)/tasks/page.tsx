@@ -5,7 +5,18 @@ import { motion } from 'framer-motion';
 import TaskCard from '@/components/tasks/TaskCard';
 
 // Mock task data
-const mockTasks = [
+const mockTasks: Array<{
+  id: string;
+  leadName: string;
+  leadEmail: string;
+  leadAvatar: string;
+  company: string;
+  campaign: string;
+  taskNotes: string;
+  status: 'open' | 'in_progress' | 'completed';
+  created: string;
+  priority: 'low' | 'medium' | 'high';
+}> = [
   {
     id: '1',
     leadName: 'Emily Chen',

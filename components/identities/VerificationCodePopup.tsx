@@ -36,7 +36,7 @@ export default function VerificationCodePopup({
             setIsLoading(true);
             setError('');
 
-            const response = await identityService.verifyLinkedInCaptcha({
+            const response = await (identityService as any).verifyLinkedInCaptcha({
                 code: code.trim(),
                 type: 'email',
                 connection_id: connectionStatusId

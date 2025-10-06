@@ -61,7 +61,7 @@ export default function EmailConnectionDropdown({
       setError(null);
       
       const providerType = identity?.email_detail?.provider_type || 'GMAIL';
-      await identityService.signout(identity.id, { type: providerType });
+      await (identityService as any).signout(identity.id, { type: providerType });
       
       onRefresh();
       setIsOpen(false);
@@ -86,7 +86,7 @@ export default function EmailConnectionDropdown({
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
         <CheckCircle size={14} className="text-green-600" />
-        <span>{getProviderDisplayName(providerType)} Connected</span>
+        <span>{getProviderDisplayName(providerType || 'GMAIL')} Connected</span>
         <button
           onClick={handleSignout}
           disabled={isLoading}

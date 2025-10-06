@@ -300,7 +300,7 @@ function ContentEditor({ node, content, onSave, onCancel }: ContentEditorProps) 
       const after = text.substring(end, text.length);
       const newText = before + variable + after;
       
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         message: newText
       }));
@@ -336,7 +336,7 @@ function ContentEditor({ node, content, onSave, onCancel }: ContentEditorProps) 
             <input
               type="text"
               value={formData.subject}
-              onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, subject: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder="Enter email subject..."
             />
@@ -351,7 +351,7 @@ function ContentEditor({ node, content, onSave, onCancel }: ContentEditorProps) 
           <textarea
             id="message"
             value={formData.message}
-            onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, message: e.target.value }))}
             className="w-full h-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
             placeholder="Write your message here..."
           />

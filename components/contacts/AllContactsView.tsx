@@ -207,6 +207,7 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
     replied: !!lead.has_replied,
     unsubscribed: !!lead.unsubscribed,
     proEmail: lead.pro_email || '',
+    customAttributes: {},
   });
   const openEdit = (c: Contact) => {
     setEditing({
@@ -476,7 +477,7 @@ const AllContactsView: React.FC<AllContactsViewProps> = ({ selectedContacts, onC
                   <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[200px] whitespace-nowrap">Campaigns</th>
                 )}
                 {visibleColumns.leadStatus !== false && (
-                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Lead's Status</th>
+                  <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px] whitespace-nowrap">Lead&apos;s Status</th>
                 )}
                 {visibleColumns.contacted !== false && (
                   <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px] whitespace-nowrap">Contacted</th>

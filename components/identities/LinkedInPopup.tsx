@@ -43,7 +43,7 @@ export default function LinkedInPopup({ identityId, onClose, onSuccess }: Linked
             setIsLoading(true);
             setError(null);
 
-            const response = await identityService.connectLinkedIn({
+            const response = await (identityService as any).connectLinkedIn({
                 identity_id: identityId,
                 data: credentials,
                 type: 'LINKEDIN'

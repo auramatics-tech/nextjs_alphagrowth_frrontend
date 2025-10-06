@@ -87,10 +87,6 @@ export default function ChatPanel({ conversation, onToggleProfile, onSendMessage
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {console.log('ChatPanel - conversation:', conversation)}
-        {console.log('ChatPanel - messages:', conversation.messages)}
-        {console.log('ChatPanel - groupedMessages:', groupedMessages)}
-        {console.log('ChatPanel - groupedMessages keys:', Object.keys(groupedMessages))}
         {Object.keys(groupedMessages).length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">

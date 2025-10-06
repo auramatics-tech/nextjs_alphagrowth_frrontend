@@ -126,7 +126,7 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
             setIsLoading(true);
             setError(null);
 
-            const response = await identityService.saveSmtpCredentials({
+            const response = await (identityService as any).saveSmtpCredentials({
                 identity_id: identityId,
                 data: credentials,
                 type: 'SMTP/IMAP'

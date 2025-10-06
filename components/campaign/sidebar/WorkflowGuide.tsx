@@ -16,9 +16,9 @@ const WorkflowGuide = () => (
           <h3 className="font-semibold text-blue-900">Getting Started</h3>
         </div>
         <div className="text-sm text-blue-800 space-y-1">
-          <p>• Click "Add New Step" button to start building your workflow</p>
+          <p>• Click &quot;Add New Step&quot; button to start building your workflow</p>
           <p>• Drag action cards from the canvas to connect nodes</p>
-          <p>• Use the "+" buttons on nodes to add sequential steps</p>
+          <p>• Use the &quot;+&quot; buttons on nodes to add sequential steps</p>
         </div>
       </div>
 

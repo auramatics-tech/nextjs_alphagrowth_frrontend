@@ -10,6 +10,7 @@ interface NodeEditorProps {
     label: string;
     subtitle: string;
     iconType: string;
+    wait_time?: number;
   } | null;
   onClose: () => void;
  

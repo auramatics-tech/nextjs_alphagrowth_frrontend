@@ -215,7 +215,7 @@ interface DraggableNodeProps {
     id: string;
     title: string;
     subtitle: string;
-    icon: React.ComponentType<{ size?: number; className?: string }>;
+    icon: any;
     color: string;
   };
   onDragStart?: (nodeId: string) => void;

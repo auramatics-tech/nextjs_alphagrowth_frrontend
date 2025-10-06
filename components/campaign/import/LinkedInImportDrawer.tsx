@@ -134,7 +134,7 @@ const LinkedInImportDrawer: React.FC<LinkedInImportDrawerProps> = ({ isOpen, onC
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-semibold text-gray-900">Paste URL in AlphaGrowth & Import</h3>
-                  <p className="text-sm text-gray-600">Paste the URL in AlphaGrowth and click on "Import" to import your leads and create your audience.</p>
+                  <p className="text-sm text-gray-600">Paste the URL in AlphaGrowth and click on &quot;Import&quot; to import your leads and create your audience.</p>
                 </div>
               </motion.div>
             )}

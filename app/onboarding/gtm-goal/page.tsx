@@ -150,7 +150,7 @@ export default function GtmGoalPage() {
                     const first = icpsRes?.icps && Array.isArray(icpsRes.icps) ? icpsRes.icps[0] : null;
                     if (first?.id) {
                         icpId = first.id;
-                        localStorage.setItem('icpId', icpId);
+                        localStorage.setItem('icpId', icpId as string);
                         console.log('[GTM] generate: recovered icpId from API', icpId);
                     } else {
                         throw new Error('No ICP found for this business. Please create your ICP first.');
@@ -162,7 +162,7 @@ export default function GtmGoalPage() {
 
             const res = await businessService.generateGtmPainPoints({
                 businessId,
-                icpId,
+                icpId: icpId as string,
                 goal_title: form.gtmName,
                 target_segment: MOCK_ICP.title, // replace with real segment when available
                 channel_focus: 'LinkedIn'

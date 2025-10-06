@@ -58,7 +58,7 @@ export default function InboxPage() {
               verified: false,
               leadStatus: leadStatus,
               dealValue: dealValue,
-              emails: [lead.pro_email, lead.perso_email].filter(Boolean),
+              emails: [lead.pro_email, lead.perso_email].filter(Boolean) as string[],
               linkedinUrl: lead.linkedin || lead.profile_url || '',
               phone: lead.phone || '',
               campaign: 'Inbox'
@@ -120,7 +120,7 @@ export default function InboxPage() {
         setSelectedIdentity(identities[0].id);
       } else {
         console.warn('No identities found. Please add an identity first.');
-        toast.warning('No identities found. Please add an identity first.');
+        toast.error('No identities found. Please add an identity first.');
       }
     } catch (error) {
       console.error('Error loading identities:', error);
@@ -206,7 +206,7 @@ export default function InboxPage() {
           id: msg.id,
           type: isFromUser ? 'outgoing' : 'incoming',
           content: typeof content === 'string' ? content : String(content || 'System message'),
-          timestamp: msg.created_at || msg.timestamp || new Date().toISOString(),
+          timestamp: msg.created_at || new Date().toISOString(),
           sender: isFromUser ? 'user' : 'contact',
           channel: msg.type?.includes('linkedin') ? 'linkedin' : 'email',
           messageType: messageType,
@@ -227,7 +227,7 @@ export default function InboxPage() {
       };
       
       console.log('Updated conversation with fresh messages:', updatedConversation);
-      setSelectedConversation(updatedConversation);
+      setSelectedConversation(updatedConversation as any);
       
     } catch (error) {
       console.error('Error loading messages for conversation:', error);
@@ -362,7 +362,7 @@ export default function InboxPage() {
           <ConversationListPanel 
             conversations={filteredConversations}
             selectedConversation={selectedConversation}
-            onConversationSelect={handleConversationSelect}
+            onConversationSelect={handleConversationSelect as any}
           />
         </div>
 

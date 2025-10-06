@@ -291,6 +291,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
         // Save the changes
         saveWorkflowData(updatedNodes, updatedEdges);
+          // setIsLoading(false);
       } else {
         console.log("badjkchjk", nodeId);
         // For regular nodes: Call API to delete
@@ -430,7 +431,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     }
 
 
-
+ setIsLoading(false);
   };
 
   const getNodeLabel = (nodeType: string): string => {
@@ -524,11 +525,11 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Start Building Your Workflow</h3>
             <p className="text-gray-600 mb-4">
-              Drag nodes from the sidebar or click "Add New Step" to begin creating your campaign workflow.
+              Drag nodes from the sidebar or click &quot;Add New Step&quot; to begin creating your campaign workflow.
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
               <span>💡</span>
-              <span>Tip: Try dragging a "Send Email" node to get started</span>
+              <span>Tip: Try dragging a &quot;Send Email&quot; node to get started</span>
             </div>
           </div>
         </div>

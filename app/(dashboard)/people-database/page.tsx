@@ -462,13 +462,13 @@ const initialColumns = [
 ];
 
 // Column Selector Component
-const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, setSearchQuery }) => {
-  const filteredColumns = columns.filter(column => 
+const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, setSearchQuery }: any) => {
+  const filteredColumns = columns.filter((column: any) =>
     column.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const toggleColumnVisibility = (columnKey) => {
-    setColumns(prev => prev.map(col => 
+  const toggleColumnVisibility = (columnKey: any) => {
+    setColumns((prev: any) => prev.map((col: any) => 
       col.key === columnKey ? { ...col, isVisible: !col.isVisible } : col
     ));
   };
@@ -504,7 +504,7 @@ const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, set
             </div>
 
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {filteredColumns.map(column => (
+              {filteredColumns.map((column: any) => (
                 <div key={column.key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
                   <span className="text-sm text-gray-700">{column.label || column.key}</span>
                   <div className="flex items-center gap-2">
@@ -552,7 +552,7 @@ interface ActiveFilter {
 
 export default function PeopleDatabasePage() {
   const [columns, setColumns] = useState(initialColumns);
-  const [selectedRows, setSelectedRows] = useState([]);
+  const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false);
   const [columnSearchQuery, setColumnSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
@@ -570,14 +570,14 @@ export default function PeopleDatabasePage() {
     if (selectedRows.length === mockPeople.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(mockPeople.map(person => person.id));
+      setSelectedRows(mockPeople.map((person: any) => person.id) as any);
     }
   };
 
-  const handleSelectRow = (personId) => {
-    setSelectedRows(prev => 
+  const handleSelectRow = (personId: any) => {
+    setSelectedRows((prev: any) => 
       prev.includes(personId) 
-        ? prev.filter(id => id !== personId)
+        ? prev.filter((id: any) => id !== personId)
         : [...prev, personId]
     );
   };
@@ -629,8 +629,8 @@ export default function PeopleDatabasePage() {
     setIsFilterSidebarCollapsed(!isFilterSidebarCollapsed);
   };
 
-  const getPersonAvatar = (name) => {
-    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const getPersonAvatar = (name: any) => {
+    const initials = name.split(' ').map((n: any) => n[0]).join('').toUpperCase();
     return (
       <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
         {initials}
@@ -638,7 +638,7 @@ export default function PeopleDatabasePage() {
     );
   };
 
-  const renderCellContent = (person, column) => {
+  const renderCellContent = (person: any, column: any) => {
     switch (column.key) {
       case 'lastName':
         return (

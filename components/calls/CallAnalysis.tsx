@@ -182,21 +182,21 @@ export default function CallAnalysis({ call, onBack }: CallAnalysisProps) {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, delay: 0.4 }}
               >
-                <span className="font-bold text-indigo-600">AI:</span> "Hi Chait, this is Alex from AlphaGrowth. I noticed your work at DataMind AI and was impressed."
+                <span className="font-bold text-indigo-600">AI:</span> &quot;Hi Chait, this is Alex from AlphaGrowth. I noticed your work at DataMind AI and was impressed.&quot;
               </motion.p>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, delay: 0.5 }}
               >
-                <span className="font-bold text-gray-700">{call.contact.name}:</span> "Oh, thank you. How can I help?"
+                <span className="font-bold text-gray-700">{call.contact.name}:</span> &quot;Oh, thank you. How can I help?&quot;
               </motion.p>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, delay: 0.6 }}
               >
-                <span className="font-bold text-indigo-600">AI:</span> "We help companies like yours accelerate their GTM strategy with AI. I saw you mentioned a challenge with data dependency... a lot of our clients face that."
+                <span className="font-bold text-indigo-600">AI:</span> &quot;We help companies like yours accelerate their GTM strategy with AI. I saw you mentioned a challenge with data dependency... a lot of our clients face that.&quot;
               </motion.p>
             </div>
           </motion.div>

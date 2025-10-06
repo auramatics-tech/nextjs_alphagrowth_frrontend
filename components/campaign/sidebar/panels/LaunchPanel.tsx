@@ -82,7 +82,7 @@ const LaunchPanel: React.FC<LaunchPanelProps> = ({ campaignId }) => {
                 Ready to launch your campaign?
               </h4>
               <p className="text-sm text-gray-600 mb-4">
-                Don't worry, you can still edit your messages later.
+                Don&apos;t worry, you can still edit your messages later.
               </p>
             </div>
 
@@ -99,7 +99,7 @@ const LaunchPanel: React.FC<LaunchPanelProps> = ({ campaignId }) => {
               className="w-full bg-gradient-to-r from-orange-500 to-blue-500 text-white font-semibold py-3 px-6 rounded-lg hover:shadow-lg transition-shadow duration-300 flex items-center justify-center gap-2"
             >
               <Rocket className="w-5 h-5" />
-              Let's go 🤘
+              Let&apos;s go 🤘
             </button>
 
             {/* Info Text */}

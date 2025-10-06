@@ -26,6 +26,7 @@ interface Contact {
   replied: boolean;
   unsubscribed: boolean;
   proEmail: string;
+  customAttributes: { [key: string]: string };
 }
 
 interface ContactRowProps {

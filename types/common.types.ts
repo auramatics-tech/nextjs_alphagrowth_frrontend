@@ -37,6 +37,7 @@ export interface SignupData {
   name: string;
   email: string;
   password: string;
+  tosAccepted?: boolean;
 }
 
 export interface BusinessProfile {

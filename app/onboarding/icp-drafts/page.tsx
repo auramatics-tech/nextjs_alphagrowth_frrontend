@@ -307,11 +307,11 @@ export default function IcpDraftsPage() {
             const payload = {
                 businessId: businessId as string,
                 icpId: icpData?.id || formData.icpId,
-                type,
-                ...derivedSectionData
+                section: type,
+                sectionData: derivedSectionData
             };
 
-            console.log('[ICP Drafts] Submitting payload (flat):', payload);
+            console.log('[ICP Drafts] Submitting payload (structured):', payload);
             const response = await businessService.updateIcpSection(payload);
             console.log('[ICP Drafts] API response:', response);
             if (response.error) {
@@ -566,7 +566,7 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Social Media Platforms" 
                                         value={Array.isArray(icpData.goalsAndObjectives.goals_obj_social_media) ? icpData.goalsAndObjectives.goals_obj_social_media.join(', ') : icpData.goalsAndObjectives.goals_obj_social_media} 
-                                        onChange={(e) => setIcpData({...icpData, goalsAndObjectives: {...icpData.goalsAndObjectives, goals_obj_social_media: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, goalsAndObjectives: {...icpData.goalsAndObjectives, goals_obj_social_media: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                 </div>
@@ -589,7 +589,7 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Industries" 
                                         value={Array.isArray(icpData.companyDetail.industries) ? icpData.companyDetail.industries.join(', ') : icpData.companyDetail.industries} 
-                                        onChange={(e) => setIcpData({...icpData, companyDetail: {...icpData.companyDetail, industries: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, companyDetail: {...icpData.companyDetail, industries: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
@@ -615,13 +615,13 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Company Targets" 
                                         value={Array.isArray(icpData.companyDetail.company_targets) ? icpData.companyDetail.company_targets.join(', ') : icpData.companyDetail.company_targets} 
-                                        onChange={(e) => setIcpData({...icpData, companyDetail: {...icpData.companyDetail, company_targets: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, companyDetail: {...icpData.companyDetail, company_targets: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Growth Indicators" 
                                         value={Array.isArray(icpData.companyDetail.company_growth_indicators) ? icpData.companyDetail.company_growth_indicators.join(', ') : icpData.companyDetail.company_growth_indicators} 
-                                        onChange={(e) => setIcpData({...icpData, companyDetail: {...icpData.companyDetail, company_growth_indicators: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, companyDetail: {...icpData.companyDetail, company_growth_indicators: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
@@ -660,13 +660,13 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Touchpoints" 
                                         value={Array.isArray(icpData.outReach.out_touchpoints) ? icpData.outReach.out_touchpoints.join(', ') : icpData.outReach.out_touchpoints} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_touchpoints: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_touchpoints: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Message Resonance" 
                                         value={Array.isArray(icpData.outReach.out_message_resonance) ? icpData.outReach.out_message_resonance.join(', ') : icpData.outReach.out_message_resonance} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_message_resonance: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_message_resonance: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
@@ -677,13 +677,13 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Personalization Hooks" 
                                         value={Array.isArray(icpData.outReach.out_personalization_hooks) ? icpData.outReach.out_personalization_hooks.join(', ') : icpData.outReach.out_personalization_hooks} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_personalization_hooks: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_personalization_hooks: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Social Proof Preferences" 
                                         value={Array.isArray(icpData.outReach.out_social_proof_preferences) ? icpData.outReach.out_social_proof_preferences.join(', ') : icpData.outReach.out_social_proof_preferences} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_social_proof_preferences: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_social_proof_preferences: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
@@ -695,13 +695,13 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Risk of Inaction" 
                                         value={Array.isArray(icpData.outReach.out_risk_of_inaction) ? icpData.outReach.out_risk_of_inaction.join(', ') : icpData.outReach.out_risk_of_inaction} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_risk_of_inaction: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_risk_of_inaction: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Value Proposition Alignment" 
                                         value={Array.isArray(icpData.outReach.out_value_proposition_alignment) ? icpData.outReach.out_value_proposition_alignment.join(', ') : icpData.outReach.out_value_proposition_alignment} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_value_proposition_alignment: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_value_proposition_alignment: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
@@ -712,7 +712,7 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Tone Optimization" 
                                         value={Array.isArray(icpData.outReach.out_tone_optimization) ? icpData.outReach.out_tone_optimization.join(', ') : icpData.outReach.out_tone_optimization} 
-                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_tone_optimization: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, outReach: {...icpData.outReach, out_tone_optimization: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                 </div>
@@ -730,31 +730,31 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Positive Indicators" 
                                         value={Array.isArray(icpData.scoringFramework.scoring_positive_indicators) ? icpData.scoringFramework.scoring_positive_indicators.join(', ') : icpData.scoringFramework.scoring_positive_indicators} 
-                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_positive_indicators: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_positive_indicators: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Negative Signals" 
                                         value={Array.isArray(icpData.scoringFramework.scoring_negative_signals) ? icpData.scoringFramework.scoring_negative_signals.join(', ') : icpData.scoringFramework.scoring_negative_signals} 
-                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_negative_signals: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_negative_signals: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Intent Weights" 
                                         value={Array.isArray(icpData.scoringFramework.scoring_intent_weights) ? icpData.scoringFramework.scoring_intent_weights.join(', ') : icpData.scoringFramework.scoring_intent_weights} 
-                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_intent_weights: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_intent_weights: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Firmographic Multipliers" 
                                         value={Array.isArray(icpData.scoringFramework.scoring_firmographic_multipliers) ? icpData.scoringFramework.scoring_firmographic_multipliers.join(', ') : icpData.scoringFramework.scoring_firmographic_multipliers} 
-                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_firmographic_multipliers: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_firmographic_multipliers: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Timing Factors" 
                                         value={Array.isArray(icpData.scoringFramework.scoring_timing_factors) ? icpData.scoringFramework.scoring_timing_factors.join(', ') : icpData.scoringFramework.scoring_timing_factors} 
-                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_timing_factors: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, scoringFramework: {...icpData.scoringFramework, scoring_timing_factors: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                 </div>
@@ -772,37 +772,37 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Discovery Channels" 
                                         value={Array.isArray(icpData.conversionPath.path_discovery_channels) ? icpData.conversionPath.path_discovery_channels.join(', ') : icpData.conversionPath.path_discovery_channels} 
-                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_discovery_channels: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_discovery_channels: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Evaluation Process" 
                                         value={Array.isArray(icpData.conversionPath.path_evaluation_process) ? icpData.conversionPath.path_evaluation_process.join(', ') : icpData.conversionPath.path_evaluation_process} 
-                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_evaluation_process: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_evaluation_process: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Decision Timeline" 
                                         value={Array.isArray(icpData.conversionPath.path_decision_timeline) ? icpData.conversionPath.path_decision_timeline.join(', ') : icpData.conversionPath.path_decision_timeline} 
-                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_decision_timeline: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_decision_timeline: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Implementation Planning" 
                                         value={Array.isArray(icpData.conversionPath.path_implementation_planning) ? icpData.conversionPath.path_implementation_planning.join(', ') : icpData.conversionPath.path_implementation_planning} 
-                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_implementation_planning: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_implementation_planning: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Objection Patterns" 
                                         value={Array.isArray(icpData.conversionPath.path_objection_patterns) ? icpData.conversionPath.path_objection_patterns.join(', ') : icpData.conversionPath.path_objection_patterns} 
-                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_objection_patterns: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_objection_patterns: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Success Validation" 
                                         value={Array.isArray(icpData.conversionPath.path_success_validation) ? icpData.conversionPath.path_success_validation.join(', ') : icpData.conversionPath.path_success_validation} 
-                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_success_validation: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, conversionPath: {...icpData.conversionPath, path_success_validation: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                 </div>
@@ -820,31 +820,31 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Buying Triggers" 
                                         value={Array.isArray(icpData.intentSignals.buying_triggers) ? icpData.intentSignals.buying_triggers.join(', ') : icpData.intentSignals.buying_triggers} 
-                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, buying_triggers: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, buying_triggers: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Seasonal Buying Patterns" 
                                         value={Array.isArray(icpData.intentSignals.seasonal_buying_patterns) ? icpData.intentSignals.seasonal_buying_patterns.join(', ') : icpData.intentSignals.seasonal_buying_patterns} 
-                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, seasonal_buying_patterns: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, seasonal_buying_patterns: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Competitive Displacement Signals" 
                                         value={Array.isArray(icpData.intentSignals.competitive_displacement_signals) ? icpData.intentSignals.competitive_displacement_signals.join(', ') : icpData.intentSignals.competitive_displacement_signals} 
-                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, competitive_displacement_signals: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, competitive_displacement_signals: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Expansion Triggers" 
                                         value={Array.isArray(icpData.intentSignals.expansion_triggers) ? icpData.intentSignals.expansion_triggers.join(', ') : icpData.intentSignals.expansion_triggers} 
-                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, expansion_triggers: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, expansion_triggers: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Urgency Accelerators" 
                                         value={Array.isArray(icpData.intentSignals.urgency_accelerators) ? icpData.intentSignals.urgency_accelerators.join(', ') : icpData.intentSignals.urgency_accelerators} 
-                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, urgency_accelerators: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, intentSignals: {...icpData.intentSignals, urgency_accelerators: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                 </div>
@@ -862,31 +862,31 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Lifetime Value Predictors" 
                                         value={Array.isArray(icpData.revenueMetrics.lifetime_value_predictors) ? icpData.revenueMetrics.lifetime_value_predictors.join(', ') : icpData.revenueMetrics.lifetime_value_predictors} 
-                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, lifetime_value_predictors: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, lifetime_value_predictors: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Upsell Expansion Potential" 
                                         value={Array.isArray(icpData.revenueMetrics.upsell_expansion_potential) ? icpData.revenueMetrics.upsell_expansion_potential.join(', ') : icpData.revenueMetrics.upsell_expansion_potential} 
-                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, upsell_expansion_potential: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, upsell_expansion_potential: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Referral Probability" 
                                         value={Array.isArray(icpData.revenueMetrics.referral_probability) ? icpData.revenueMetrics.referral_probability.join(', ') : icpData.revenueMetrics.referral_probability} 
-                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, referral_probability: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, referral_probability: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Retention Risk Factors" 
                                         value={Array.isArray(icpData.revenueMetrics.retention_risk_factors) ? icpData.revenueMetrics.retention_risk_factors.join(', ') : icpData.revenueMetrics.retention_risk_factors} 
-                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, retention_risk_factors: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, retention_risk_factors: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Deal Size Influencers" 
                                         value={Array.isArray(icpData.revenueMetrics.deal_size_influencers) ? icpData.revenueMetrics.deal_size_influencers.join(', ') : icpData.revenueMetrics.deal_size_influencers} 
-                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, deal_size_influencers: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, revenueMetrics: {...icpData.revenueMetrics, deal_size_influencers: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                     </div>
@@ -904,61 +904,61 @@ export default function IcpDraftsPage() {
                                     <EditableField 
                                         label="Buying Process Complexity" 
                                         value={Array.isArray(icpData.buyingBehavior.buying_process_complexity) ? icpData.buyingBehavior.buying_process_complexity.join(', ') : icpData.buyingBehavior.buying_process_complexity} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, buying_process_complexity: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, buying_process_complexity: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Purchase Authority Level" 
                                         value={Array.isArray(icpData.buyingBehavior.purchase_authority_level) ? icpData.buyingBehavior.purchase_authority_level.join(', ') : icpData.buyingBehavior.purchase_authority_level} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, purchase_authority_level: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, purchase_authority_level: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Primary Evaluation Criteria" 
                                         value={Array.isArray(icpData.buyingBehavior.evaluation_criteria_primary) ? icpData.buyingBehavior.evaluation_criteria_primary.join(', ') : icpData.buyingBehavior.evaluation_criteria_primary} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, evaluation_criteria_primary: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, evaluation_criteria_primary: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Secondary Evaluation Criteria" 
                                         value={Array.isArray(icpData.buyingBehavior.evaluation_criteria_secondary) ? icpData.buyingBehavior.evaluation_criteria_secondary.join(', ') : icpData.buyingBehavior.evaluation_criteria_secondary} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, evaluation_criteria_secondary: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, evaluation_criteria_secondary: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Decision Timeline" 
                                         value={Array.isArray(icpData.buyingBehavior.decision_timeline) ? icpData.buyingBehavior.decision_timeline.join(', ') : icpData.buyingBehavior.decision_timeline} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, decision_timeline: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, decision_timeline: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Budget Considerations" 
                                         value={Array.isArray(icpData.buyingBehavior.budget_considerations) ? icpData.buyingBehavior.budget_considerations.join(', ') : icpData.buyingBehavior.budget_considerations} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, budget_considerations: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, budget_considerations: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Stakeholder Involvement" 
                                         value={Array.isArray(icpData.buyingBehavior.stakeholder_involvement) ? icpData.buyingBehavior.stakeholder_involvement.join(', ') : icpData.buyingBehavior.stakeholder_involvement} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, stakeholder_involvement: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, stakeholder_involvement: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Risk Tolerance" 
                                         value={Array.isArray(icpData.buyingBehavior.risk_tolerance) ? icpData.buyingBehavior.risk_tolerance.join(', ') : icpData.buyingBehavior.risk_tolerance} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, risk_tolerance: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, risk_tolerance: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Vendor Preferences" 
                                         value={Array.isArray(icpData.buyingBehavior.vendor_preferences) ? icpData.buyingBehavior.vendor_preferences.join(', ') : icpData.buyingBehavior.vendor_preferences} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, vendor_preferences: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, vendor_preferences: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     <EditableField 
                                         label="Contract Preferences" 
                                         value={Array.isArray(icpData.buyingBehavior.contract_preferences) ? icpData.buyingBehavior.contract_preferences.join(', ') : icpData.buyingBehavior.contract_preferences} 
-                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, contract_preferences: e.target.value}})} 
+                                        onChange={(e) => setIcpData({...icpData, buyingBehavior: {...icpData.buyingBehavior, contract_preferences: e.target.value.split(',').map(s => s.trim()).filter(s => s)}})} 
                                         isTextarea={true}
                                     />
                                     </div>

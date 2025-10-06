@@ -11,7 +11,7 @@ import { businessService } from '../../../services/businessService';
 import { BusinessAnalysisResponse } from '../../../types/business.types';
 
 // --- Reusable Themed Components ---
-const BusinessTypeCard = ({ icon: Icon, title, description, isSelected, onClick, disabled }) => (
+const BusinessTypeCard = ({ icon: Icon, title, description, isSelected, onClick, disabled }: any) => (
     <button
         type="button"
         role="radio"

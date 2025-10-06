@@ -88,7 +88,6 @@ const CreateICPPage = () => {
     // Conversion Path
     discoveryChannels: '',
     evaluationProcess: '',
-    decisionTimeline: '',
     implementationPlanning: '',
     objectionPatterns: '',
     successValidation: '',
@@ -182,7 +181,6 @@ const CreateICPPage = () => {
         // Conversion Path
         discoveryChannels: 'LinkedIn outreach, content marketing, webinars, industry events, referrals, cold email, paid advertising, SEO content.',
         evaluationProcess: 'Initial discovery call, needs assessment, solution demonstration, pilot program, stakeholder meetings, proposal review, negotiation.',
-        decisionTimeline: '3-6 months typical, can be accelerated to 1-2 months with proper urgency and executive sponsorship.',
         implementationPlanning: 'Phased rollout over 6-12 months, dedicated project manager, change management support, training programs, ongoing support.',
         objectionPatterns: 'Budget concerns, timeline constraints, integration complexity, change management challenges, ROI uncertainty, security concerns.',
         successValidation: 'KPI improvements, user adoption rates, cost savings achieved, efficiency gains, customer satisfaction scores, ROI metrics.',

@@ -13,6 +13,7 @@ interface Contact {
   dealValue: string;
   emails: string[];
   linkedinUrl: string;
+  phone: string;
   campaign: string;
 }
 
@@ -33,6 +34,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
     dealValue: 'Not Set',
     emails: [],
     linkedinUrl: '',
+    phone: '',
     campaign: 'No Campaign'
   });
 
@@ -249,7 +251,7 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
               <input
                 type="email"
                 value={editedContact?.emails?.[0] || ''}
-                onChange={(e) => handleFieldChange('emails', [e.target.value])}
+                onChange={(e) => handleFieldChange('emails', e.target.value)}
                 placeholder="Enter email address"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
