@@ -106,12 +106,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
           x: node.position?.x || 250,
           y: node.position?.y || 100
         },
+          action_key: node.data.action_key,
         data: {
           label: node.data?.label || node.label || getNodeLabel(node.action_key || node.type),
           iconType: node.data?.iconType || node.action_key || node.type,
           action_key: node.data.action_key,
           subtitle: node.data?.subtitle || getNodeSubtitle(node.action_key || node.type),
-          isCondition: ["condition_has_email", "condition_open_email", "condition_email_verified", "condition_has_phone_number", "condition_accepted_invite"].includes(node.data.action_key) || false,
+          isCondition: ["condition_has_email", "condition_open_email", "condition_email_verified", "condition_has_phone_number", "condition_accepted_invite","condition_open_message"].includes(node.data.action_key) || false,
           hasYesBranch: false,
           hasNoBranch: false,
           onPlusClick: () => handlePlusClick(node.id),
@@ -421,6 +422,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       } : null;
 
       // Prepare updated nodes and edges for save-flow API
+      console.log("nodes----",nodes);
+      
       const updatedNodes = [...nodes, newNode];
 
       const updatedEdges = newEdge ? [...edges, newEdge] : edges;
@@ -593,7 +596,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       {hasUnsavedChanges && !isSaving && (
         <div className="absolute top-4 right-4 z-10">
           <button
-            // onClick={() => saveWorkflowData(undefined, undefined, undefined, true)}
+       
             className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg transition-colors"
           >
             Save Changes

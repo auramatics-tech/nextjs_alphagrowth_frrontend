@@ -1,110 +1,83 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import TaskCard from '@/components/tasks/TaskCard';
-
-// Mock task data
-const mockTasks: Array<{
-  id: string;
-  leadName: string;
-  leadEmail: string;
-  leadAvatar: string;
-  company: string;
-  campaign: string;
-  taskNotes: string;
-  status: 'open' | 'in_progress' | 'completed';
-  created: string;
-  priority: 'low' | 'medium' | 'high';
-}> = [
-  {
-    id: '1',
-    leadName: 'Emily Chen',
-    leadEmail: 'emily.chen@techcorp.com',
-    leadAvatar: '/avatars/emily-chen.jpg',
-    company: 'TechCorp Solutions',
-    campaign: 'Q4 Enterprise Outreach',
-    taskNotes: 'Follow up on demo request and schedule meeting for next week',
-    status: 'open',
-    created: '2023-10-25T10:30:00Z',
-    priority: 'high'
-  },
-  {
-    id: '2',
-    leadName: 'Michael Rodriguez',
-    leadEmail: 'm.rodriguez@startup.io',
-    leadAvatar: '/avatars/michael-rodriguez.jpg',
-    company: 'StartupIO',
-    campaign: 'SaaS Product Launch',
-    taskNotes: 'Send pricing information and case studies',
-    status: 'in_progress',
-    created: '2023-10-24T14:15:00Z',
-    priority: 'medium'
-  },
-  {
-    id: '3',
-    leadName: 'Sarah Johnson',
-    leadEmail: 'sarah.j@enterprise.com',
-    leadAvatar: '/avatars/sarah-johnson.jpg',
-    company: 'Enterprise Solutions Inc',
-    campaign: 'Enterprise Outreach',
-    taskNotes: 'Prepare custom proposal based on their requirements',
-    status: 'completed',
-    created: '2023-10-23T09:20:00Z',
-    priority: 'high'
-  },
-  {
-    id: '4',
-    leadName: 'David Kim',
-    leadEmail: 'david.kim@innovate.com',
-    leadAvatar: '/avatars/david-kim.jpg',
-    company: 'Innovate Technologies',
-    campaign: 'Innovation Partnership',
-    taskNotes: 'Schedule technical integration call with their dev team',
-    status: 'open',
-    created: '2023-10-22T16:45:00Z',
-    priority: 'low'
-  },
-  {
-    id: '5',
-    leadName: 'Lisa Thompson',
-    leadEmail: 'lisa.thompson@globalcorp.com',
-    leadAvatar: '/avatars/lisa-thompson.jpg',
-    company: 'GlobalCorp',
-    campaign: 'Global Expansion',
-    taskNotes: 'Follow up on contract review and legal requirements',
-    status: 'in_progress',
-    created: '2023-10-21T11:30:00Z',
-    priority: 'medium'
-  }
-];
+import { getUserTasks, updateTaskStatus, updateTaskNotes, deleteTask, type Task } from '@/services/taskService';
 
 export default function MyTasksPage() {
-  const [tasks, setTasks] = useState(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch tasks on component mount
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const response = await getUserTasks();
+      setTasks(response.data || []);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      toast.error('Failed to fetch tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter and search logic
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-      const matchesSearch = task.leadName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          task.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          task.taskNotes.toLowerCase().includes(searchQuery.toLowerCase());
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = searchQuery === '' || 
+        (task.lead.first_name && task.lead.first_name.toLowerCase().includes(searchLower)) ||
+        (task.lead.last_name && task.lead.last_name.toLowerCase().includes(searchLower)) ||
+        (task.lead.company_name && task.lead.company_name.toLowerCase().includes(searchLower)) ||
+        (task.campaign.name && task.campaign.name.toLowerCase().includes(searchLower)) ||
+        (task.task_notes && task.task_notes.toLowerCase().includes(searchLower));
       return matchesStatus && matchesSearch;
     });
   }, [tasks, statusFilter, searchQuery]);
 
-  const handleTaskUpdate = (taskId: string, updates: any) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId ? { ...task, ...updates } : task
-      )
-    );
+  const handleTaskUpdate = async (taskId: string, updates: any) => {
+    try {
+      if (updates.status) {
+        await updateTaskStatus(taskId, updates.status);
+        toast.success('Task status updated successfully');
+      }
+      if (updates.task_notes !== undefined) {
+        await updateTaskNotes(taskId, updates.task_notes);
+        toast.success('Task notes updated successfully');
+      }
+      
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId ? { ...task, ...updates } : task
+        )
+      );
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+    }
   };
 
-  const handleTaskDelete = (taskId: string) => {
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+  const handleTaskDelete = async (taskId: string) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await deleteTask(taskId);
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+        toast.success('Task deleted successfully');
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        toast.error('Failed to delete task');
+      }
+    }
   };
 
   const handleAddTask = () => {
@@ -147,9 +120,9 @@ export default function MyTasksPage() {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="all">All Tasks</option>
-              <option value="open">Open</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
+              <option value="OPENED">Open</option>
+              <option value="WORKING">Working</option>
+              <option value="CLOSED">Closed</option>
             </select>
           </div>
 
@@ -183,63 +156,74 @@ export default function MyTasksPage() {
 
       {/* Task List */}
       <div className="p-6">
-        {/* Header Row */}
-        <div className="bg-white rounded-lg border border-gray-200 mb-4">
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 rounded-t-lg border-b border-gray-200">
-            <div className="col-span-3">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Lead Name</span>
-            </div>
-            <div className="col-span-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</span>
-            </div>
-            <div className="col-span-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Campaign</span>
-            </div>
-            <div className="col-span-3">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Task Notes</span>
-            </div>
-            <div className="col-span-1">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</span>
-            </div>
-            <div className="col-span-1">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</span>
+        {loading ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <span className="ml-3 text-gray-600">Loading tasks...</span>
             </div>
           </div>
-        </div>
-
-        {/* Task Cards */}
-        <div className="space-y-3">
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map((task, index) => (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <TaskCard
-                  task={task}
-                  onUpdate={handleTaskUpdate}
-                  onDelete={handleTaskDelete}
-                />
-              </motion.div>
-            ))
-          ) : (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-              <div className="text-gray-500">
-                <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-                <p className="text-gray-500">
-                  {searchQuery || statusFilter !== 'all' 
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'Get started by creating your first task.'}
-                </p>
+        ) : (
+          <>
+            {/* Header Row */}
+            <div className="bg-white rounded-lg border border-gray-200 mb-4">
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 rounded-t-lg border-b border-gray-200">
+                <div className="col-span-3">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Lead Name</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Campaign</span>
+                </div>
+                <div className="col-span-3">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Task Notes</span>
+                </div>
+                <div className="col-span-1">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</span>
+                </div>
+                <div className="col-span-1">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</span>
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Task Cards */}
+            <div className="space-y-3">
+              {filteredTasks.length > 0 ? (
+                filteredTasks.map((task, index) => (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                  >
+                    <TaskCard
+                      task={task}
+                      onUpdate={handleTaskUpdate}
+                      onDelete={handleTaskDelete}
+                    />
+                  </motion.div>
+                ))
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+                  <div className="text-gray-500">
+                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
+                    <p className="text-gray-500">
+                      {searchQuery || statusFilter !== 'all' 
+                        ? 'Try adjusting your search or filter criteria.'
+                        : 'Get started by creating your first task.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Results Summary */}
         {filteredTasks.length > 0 && (

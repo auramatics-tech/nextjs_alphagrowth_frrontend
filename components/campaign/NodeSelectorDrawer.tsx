@@ -94,13 +94,7 @@ const stepNodes: NodeItem[] = [
 ];
 
 const conditionNodes: NodeItem[] = [
-  {
-    id: 'condition_custom',
-    title: 'Custom Condition',
-    subtitle: '',
-    icon: Link,
-    type: 'condition'
-  },
+  
   {
     id: 'condition_has_email',
     title: 'Has Professional Email',
@@ -108,20 +102,8 @@ const conditionNodes: NodeItem[] = [
     icon: CheckCircle,
     type: 'condition'
   },
-  {
-    id: 'condition_email_not_accepted',
-    title: 'Email Not Accepted',
-    subtitle: '',
-    icon: CheckCircle,
-    type: 'condition'
-  },
-  {
-    id: 'condition_reach_goal',
-    title: 'Reach Goal',
-    subtitle: '',
-    icon: CheckCircle,
-    type: 'condition'
-  },
+  
+  
   {
     id: 'condition_accepted_invite',
     title: 'If connected',
@@ -137,7 +119,7 @@ const conditionNodes: NodeItem[] = [
     type: 'condition'
   },
   {
-    id: 'condition_email_verified',
+    id: 'condition_is_email_verified',
     title: 'If email verified',
     subtitle: '',
     icon: CheckCircle,
@@ -150,29 +132,9 @@ const conditionNodes: NodeItem[] = [
     icon: CheckCircle,
     type: 'condition'
   },
+ 
   {
-    id: 'condition_email_link_clicked',
-    title: 'If email link clicked',
-    subtitle: '',
-    icon: CheckCircle,
-    type: 'condition'
-  },
-  {
-    id: 'wait',
-    title: 'Wait',
-    subtitle: '',
-    icon: Clock,
-    type: 'condition'
-  },
-  {
-    id: 'condition_end_sequence',
-    title: 'End Sequence',
-    subtitle: '',
-    icon: CheckCircle,
-    type: 'condition'
-  },
-  {
-    id: 'condition_open_linkedin_message',
+    id: 'condition_open_message',
     title: 'Open Linkedin Message',
     subtitle: '',
     icon: MessageSquare,

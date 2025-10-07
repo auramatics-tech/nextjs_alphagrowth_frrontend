@@ -5,77 +5,17 @@ import { ArrowLeft, Eye, Save, Edit3, MessageSquare, Mail, MessageCircle, Linked
 import WorkflowStepItem from './WorkflowStepItem';
 import { campaignService } from '@/services/campaignService';
 
-interface WorkflowStep {
-  id: string;
-  title: string;
-  description: string;
-  type: 'action' | 'condition';
-  channel: 'linkedin' | 'email' | 'voice' | 'generic';
-  icon: string;
-  hasContent: boolean;
-  content?: string;
-  characterLimit?: number;
-  day?: number;
-  order?: number;
-  editable?: boolean;
-}
 
-// Mock workflow steps data
-const mockWorkflowSteps: WorkflowStep[] = [
-  {
-    id: '1',
-    title: 'Send Message',
-    description: 'Send personalized message',
-    type: 'action',
-    channel: 'linkedin',
-    icon: 'message',
-    hasContent: false,
-    content: '',
-    characterLimit: 300
-  },
-  {
-    id: '2',
-    title: 'Send Email',
-    description: 'Send personalized email',
-    type: 'action',
-    channel: 'email',
-    icon: 'email',
-    hasContent: false,
-    content: '',
-    characterLimit: 1000
-  },
-  {
-    id: '3',
-    title: 'If Email Opened',
-    description: 'Check if email was opened',
-    type: 'condition',
-    channel: 'generic',
-    icon: 'eye',
-    hasContent: false,
-    content: '',
-    characterLimit: 500
-  },
-  {
-    id: '4',
-    title: 'Follow Up Message',
-    description: 'Send follow-up message',
-    type: 'action',
-    channel: 'linkedin',
-    icon: 'follow-up',
-    hasContent: false,
-    content: '',
-    characterLimit: 300
-  }
-];
+
 
 // Available variables for personalization
 const availableVariables = [
-  { name: '{{firstName}}', description: 'Contact first name' },
-  { name: '{{companyName}}', description: 'Contact company name' },
-  { name: '{{industry}}', description: 'Contact industry' },
-  { name: '{{title}}', description: 'Contact job title' },
-  { name: '{{location}}', description: 'Contact location' },
-  { name: '{{linkedinUrl}}', description: 'Contact LinkedIn URL' }
+  { name: '{{first_name}}', description: 'Contact first name' },
+  { name: '{{Company}}', description: 'Contact company name' },
+  { name: '{{Industry}}', description: 'Contact industry' },
+  { name: '{{lead_title}}', description: 'Contact job title' },
+  { name: '{{lead_location}}', description: 'Contact location' },
+  { name: '{{lead_website}}', description: 'Contact website' }
 ];
 
 interface CustomContentEditorProps {
@@ -83,14 +23,32 @@ interface CustomContentEditorProps {
 }
 
 export default function CustomContentEditor({ campaignId }: CustomContentEditorProps) {
-  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
+  const [workflowSteps, setWorkflowSteps] = useState<any[]>([]);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
   const selectedStep = selectedStepId ? workflowSteps.find(step => step.id === selectedStepId) : null;
-  // per-node message cache { [nodeId]: { message, subject, alternate_message } }
-  const [nodeMessages, setNodeMessages] = useState<Record<string, any>>({});
-  // track which nodes have unsaved edits
+
+  // State for variable insertion
+  const [activeField, setActiveField] = useState<'subject' | 'message'>('message');
+  const [inputRefs, setInputRefs] = useState<{
+    subject: HTMLInputElement | null;
+    message: HTMLTextAreaElement | null;
+  }>({
+    subject: null,
+    message: null
+  });
+
   const [dirtyNodes, setDirtyNodes] = useState<Record<string, boolean>>({});
+
+  // Stable ref setters to prevent infinite loops
+  const setSubjectRef = useCallback((el: HTMLInputElement | null) => {
+    setInputRefs(prev => ({ ...prev, subject: el }));
+  }, []);
+
+  const setMessageRef = useCallback((el: HTMLTextAreaElement | null) => {
+    setInputRefs(prev => ({ ...prev, message: el }));
+  }, []);
+
   const loadNodes = async () => {
     try {
       const flow = await campaignService.getCampaignFlow(campaignId);
@@ -131,14 +89,18 @@ export default function CustomContentEditor({ campaignId }: CustomContentEditorP
         return order;
       };
       const topoOrder = computeOrder();
+ 
 
-      // sort nodes by day/order when available
-      const mapped: WorkflowStep[] = nodes.map((n: any, idx: number) => {
+
+      const mapped: any[] = nodes.map((n: any, idx: number) => {
         const data = n.data || {};
         const label = data.label || data.title || n.id || `Step ${idx + 1}`;
         const subtype = data.subtype || data.type || n.type || 'action';
         const channelRaw = data.channel || data.iconType || '';
         const actionKey = data?.action_key || data?.actionKey || n?.type;
+        const message = data?.message;
+        console.log("message---", message);
+
         // Prefer action_key to determine channel reliably
         let channel: any = 'generic';
         if (actionKey === 'action_send_email') channel = 'email';
@@ -155,118 +117,110 @@ export default function CustomContentEditor({ campaignId }: CustomContentEditorP
           channel: channel,
           icon: isCondition ? 'eye' : channel === 'email' ? 'email' : channel === 'linkedin' ? 'message' : 'message',
           hasContent: false,
-          content: '',
+          content: message,
           characterLimit: channel === 'linkedin' ? 300 : channel === 'email' ? 1000 : 500,
           day: data?.delayInDays ?? data?.day ?? 0,
           order: topoOrder[n.id?.toString()] || data?.order || idx + 1,
           editable,
-        } as WorkflowStep;
+        } as any;
       });
 
       const sorted = [...mapped].sort((a, b) => (a.day || 0) - (b.day || 0) || (a.order || 0) - (b.order || 0));
       setWorkflowSteps(sorted);
       // pick initial selection and load its content from server so refresh shows text
-      if (sorted.length > 0) {
+      if (sorted.length > 0 && !selectedStepId) {
         const initialId = sorted.find(s => s.type === 'action' && s.editable)?.id || sorted[0].id;
         setSelectedStepId(initialId);
-        try {
-          const res = await campaignService.getCampaignNodeMessageByNodeId(initialId);
-          const data = res?.data || {};
-          setNodeMessages(prev => ({ ...prev, [initialId]: data }));
-          setWorkflowSteps(prev => prev.map(s => {
-            if (s.id !== initialId) return s;
-            // hydrate for both email and linkedin
-            const hydratedContent = typeof data?.message === 'string' ? data.message : '';
-            return { ...s, content: hydratedContent, hasContent: !!hydratedContent.trim() };
-          }));
-        } catch { }
+
       }
     } catch (e) {
-      // Fallback to mock if something goes wrong
-      const sortedMock = [...mockWorkflowSteps].sort((a, b) => (a.day || 0) - (b.day || 0) || (a as any).order - (b as any).order);
-      setWorkflowSteps(sortedMock);
-      setSelectedStepId(mockWorkflowSteps[0].id);
+
+
     }
   };
-  // Load campaign nodes dynamically
-
-
-  // Get selected step
 
 
   // Handle step selection: lazy-load message if not loaded
   const handleStepSelect = useCallback(async (stepId: string) => {
     setSelectedStepId(stepId);
     try {
-      if (!nodeMessages[stepId]) {
-        const res = await campaignService.getCampaignNodeMessageByNodeId(stepId);
-        const data = res?.data || {};
-        setNodeMessages(prev => ({ ...prev, [stepId]: data }));
-        setWorkflowSteps(prev => prev.map(s => {
-          if (s.id !== stepId) return s;
-          const content = typeof data?.message === 'string' ? data.message : '';
-          return { ...s, content, hasContent: !!content.trim() };
-        }));
-      }
-    } catch (e: any) {
-      // silent load error
-    }
-  }, [nodeMessages]);
 
-  // Handle content change
-  const handleContentChange = useCallback((stepId: string, content: string) => {
-    setWorkflowSteps(prev => prev.map(step =>
-      step.id === stepId
-        ? { ...step, content, hasContent: content.trim().length > 0 }
-        : step
-    ));
-    setNodeMessages(prev => ({ ...prev, [stepId]: { ...(prev[stepId] || {}), message: content } }));
-    setDirtyNodes(prev => ({ ...prev, [stepId]: true }));
+    } catch (e: any) {
+
+    }
   }, []);
+ 
 
   // Save current node (Debounced via user interactions)
-  const saveCurrentNode = useCallback(async () => {
+  const saveCurrentNode = useCallback(async (e: any) => {
+
+
+
+
+    const data: any = {};
+
     if (!selectedStepId) return;
     const step = workflowSteps.find(s => s.id === selectedStepId);
-    if (!step || !step.editable) return;
-    // Guard: avoid overwriting with blanks when no user change
-    if (!dirtyNodes[step.id]) return;
-    // Build payload according to backend validation: { node_id, data: {...} }
-    const data: any = {};
-    if (step.channel === 'email') {
-      data.subject = nodeMessages[step.id]?.subject || '';
-      data.message = nodeMessages[step.id]?.message || step.content || '';
-      if (nodeMessages[step.id]?.alternate_message) data.alternate_message = nodeMessages[step.id].alternate_message;
-    } else {
-      data.message = nodeMessages[step.id]?.message || step.content || '';
-    }
-    // If message still empty after edits, do not auto-save to prevent blank overwrite
-    if (!data.message || !data.message.trim()) {
-      return;
-    }
-    const payload: any = { node_id: step.id, data };
-    try {
-      setError(null);
-      await campaignService.upsertCampaignNodeMessage(payload);
 
-      setWorkflowSteps(prev => prev.map(s => s.id === step.id ? { ...s, hasContent: !!(data.message || '').trim() } : s));
-      setDirtyNodes(prev => ({ ...prev, [step.id]: false }));
+    if (e.target.name == "subject") {
+      data.subject = e.target.value
+      data.message = step?.content?.message
+    } else {
+      data.message = e.target.value
+      data.subject = step?.content?.subject
+    }
+
+    const payload: any = { node_id: selectedStepId, data };
+    try {
+
+
+      await campaignService.upsertCampaignNodeMessage(payload);
+      loadNodes();
+
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to save');
+
     } finally {
 
     }
-  }, [selectedStepId, workflowSteps, nodeMessages, dirtyNodes]);
+  }, [selectedStepId, workflowSteps, dirtyNodes]);
 
   // Handle variable insertion
   const handleVariableInsert = useCallback((variable: string) => {
-    if (selectedStep) {
-      const currentContent = selectedStep.content || '';
-      const newContent = currentContent + variable;
-      handleContentChange(selectedStep.id, newContent);
-    }
-  }, [selectedStep, handleContentChange]);
-
+    if (!selectedStep || !selectedStepId) return;
+    
+    // Get the active input element
+    const activeInput = activeField === 'subject' ? inputRefs.subject : inputRefs.message;
+    
+    if (!activeInput) return;
+    
+    // Focus the input to ensure it's active
+    activeInput.focus();
+    
+    // Get cursor position
+    const cursorPos = activeInput.selectionStart || 0;
+    
+    // Insert the variable at cursor position
+    const currentValue = activeInput.value;
+    const newValue = currentValue.slice(0, cursorPos) + variable + currentValue.slice(cursorPos);
+    
+    // Update the input value
+    activeInput.value = newValue;
+    
+    // Set cursor position after the inserted text
+    activeInput.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
+    
+    // Create a synthetic event that matches your onChange signature
+    const syntheticEvent = {
+      target: {
+        name: activeField,
+        value: newValue
+      }
+    };
+    
+    // Call your existing saveCurrentNode directly
+    saveCurrentNode(syntheticEvent);
+    
+  }, [selectedStep, selectedStepId, activeField, inputRefs, saveCurrentNode]);
 
 
 
@@ -318,6 +272,8 @@ export default function CustomContentEditor({ campaignId }: CustomContentEditorP
 
     loadNodes();
   }, [campaignId]);
+
+
 
   return (
     <div className="h-full flex flex-col">
@@ -402,10 +358,12 @@ export default function CustomContentEditor({ campaignId }: CustomContentEditorP
                       Subject
                     </label>
                     <input
+                      ref={setSubjectRef}
+                      name="subject"
                       type="text"
-                      value={(nodeMessages[selectedStep.id]?.subject) || ''}
-                      onChange={(e) => setNodeMessages(prev => ({ ...prev, [selectedStep.id]: { ...(prev[selectedStep.id] || {}), subject: e.target.value } }))}
-                      onBlur={saveCurrentNode}
+                      value={selectedStep?.content?.subject || ''}
+                      onChange={saveCurrentNode}
+                      onFocus={() => setActiveField('subject')}
                       placeholder="Write your email subject..."
                       className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
@@ -416,9 +374,11 @@ export default function CustomContentEditor({ campaignId }: CustomContentEditorP
                     Message Content
                   </label>
                   <textarea
-                    value={selectedStep.content || ''}
-                    onChange={(e) => handleContentChange(selectedStep.id, e.target.value)}
-                    onBlur={saveCurrentNode}
+                    ref={setMessageRef}
+                    name="message"
+                    value={selectedStep?.content?.message || ''}
+                    onChange={saveCurrentNode}
+                    onFocus={() => setActiveField('message')}
                     placeholder="Write your message here..."
                     className="w-full h-64 p-4 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -449,7 +409,7 @@ export default function CustomContentEditor({ campaignId }: CustomContentEditorP
                     ))}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Click on any variable to insert it into your message
+                    Click on any variable to insert it at cursor position in your {activeField === 'subject' ? 'subject line' : 'message'}
                   </p>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const baseURL ="http://localhost:7001" //  process.env.NEXT_PUBLIC_API_BASE_URL || "https://dev.alphagrowth.ai";
+const baseURL ="http://localhost:7001"  
 
 export const apiClient = axios.create({
   baseURL,

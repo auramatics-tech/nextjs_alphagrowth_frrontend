@@ -53,7 +53,7 @@ export default function ContentPage() {
       content: {
         subject: '',
         message: '',
-        variables: ['{{firstName}}', '{{companyName}}', '{{industry}}']
+        variables: ['{{first_name}}', '{{companyName}}', '{{industry}}']
       }
     },
     {
@@ -68,7 +68,7 @@ export default function ContentPage() {
       content: {
         subject: '',
         message: '',
-        variables: ['{{firstName}}', '{{companyName}}', '{{email}}', '{{industry}}']
+        variables: ['{{first_name}}', '{{companyName}}', '{{email}}', '{{industry}}']
       }
     },
     {
@@ -83,7 +83,7 @@ export default function ContentPage() {
       content: {
         subject: '',
         message: '',
-        variables: ['{{firstName}}', '{{companyName}}']
+        variables: ['{{first_name}}', '{{companyName}}']
       }
     },
     {
@@ -98,7 +98,7 @@ export default function ContentPage() {
       content: {
         subject: '',
         message: '',
-        variables: ['{{firstName}}', '{{companyName}}', '{{industry}}']
+        variables: ['{{first_name}}', '{{companyName}}', '{{industry}}']
       }
     }
   ]);

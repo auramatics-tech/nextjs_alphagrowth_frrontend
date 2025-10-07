@@ -15,8 +15,7 @@ import {
 export default function WorkflowPage() {
   const params = useParams();
   const campaignId = params.campaignId as string;
-
-  const [shouldOpenNodeSelector, setShouldOpenNodeSelector] = useState(false);
+ 
   const [showNodeSelector, setShowNodeSelector] = useState(false);
 
   // ✅ CENTRALIZED STATE - Fetch campaign data once

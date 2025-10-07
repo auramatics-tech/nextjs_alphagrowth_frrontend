@@ -5,15 +5,32 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
   id: string;
-  leadName: string;
-  leadEmail: string;
-  leadAvatar: string;
-  company: string;
-  campaign: string;
-  taskNotes: string;
-  status: 'open' | 'in_progress' | 'completed';
-  created: string;
-  priority: 'low' | 'medium' | 'high';
+  status: 'OPENED' | 'WORKING' | 'CLOSED';
+  task_notes: string;
+  opened_at: string;
+  working_at?: string;
+  closed_at?: string;
+  created_at: string;
+  updated_at: string;
+  lead: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    company_name: string;
+    pro_email: string;
+    profile_url?: string;
+  };
+  campaign: {
+    id: string;
+    name: string;
+    status: string;
+  };
+  node?: {
+    id: string;
+    label: string;
+    type: string;
+    node_type: string;
+  };
 }
 
 interface TaskCardProps {
@@ -40,11 +57,11 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open':
+      case 'OPENED':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'in_progress':
+      case 'WORKING':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed':
+      case 'CLOSED':
         return 'bg-green-100 text-green-800 border-green-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -90,17 +107,17 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
   };
 
   const handleMarkComplete = () => {
-    onUpdate(task.id, { status: 'completed' });
+    onUpdate(task.id, { status: 'CLOSED' });
     setShowActionsMenu(false);
   };
 
   const handleMarkInProgress = () => {
-    onUpdate(task.id, { status: 'in_progress' });
+    onUpdate(task.id, { status: 'WORKING' });
     setShowActionsMenu(false);
   };
 
   const handleReopen = () => {
-    onUpdate(task.id, { status: 'open' });
+    onUpdate(task.id, { status: 'OPENED' });
     setShowActionsMenu(false);
   };
 
@@ -111,8 +128,12 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     setShowActionsMenu(false);
   };
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  };
+
+  const getFullName = (firstName: string, lastName: string) => {
+    return `${firstName || ''} ${lastName || ''}`.trim();
   };
 
   return (
@@ -122,55 +143,70 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         <div className="col-span-3 flex items-center gap-3">
           <div className="relative flex-shrink-0">
             <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-              <img 
-                src={task.leadAvatar} 
-                alt={task.leadName}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-              <div className="w-full h-full bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm" style={{ display: 'none' }}>
-                {getInitials(task.leadName)}
+              {task.lead.profile_url ? (
+                <img 
+                  src={task.lead.profile_url} 
+                  alt={getFullName(task.lead.first_name, task.lead.last_name)}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm ${task.lead.profile_url ? 'hidden' : 'flex'}`}>
+                {getInitials(task.lead.first_name, task.lead.last_name)}
               </div>
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-gray-900 truncate">{task.leadName}</div>
-            <div className="text-sm text-gray-500 truncate">{task.leadEmail}</div>
+            <div className="font-semibold text-gray-900 truncate">{getFullName(task.lead.first_name, task.lead.last_name)}</div>
+            <div className="text-sm text-gray-500 truncate">{task.lead.pro_email || 'No email'}</div>
           </div>
         </div>
 
         {/* Company */}
         <div className="col-span-2 flex items-center">
-          <span className="text-sm text-gray-900 truncate">{task.company}</span>
+          <span className="text-sm text-gray-900 truncate">{task.lead.company_name || 'Not specified'}</span>
         </div>
 
         {/* Campaign */}
         <div className="col-span-2 flex items-center">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getCampaignColor(task.campaign)}`}>
-            {task.campaign}
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getCampaignColor(task.campaign.name)}`}>
+            {task.campaign.name || 'Unnamed Campaign'}
           </span>
         </div>
 
         {/* Task Notes */}
         <div className="col-span-3 flex items-center">
-          <p className="text-sm text-gray-900 line-clamp-2">{task.taskNotes}</p>
+          <textarea 
+            className="w-full text-sm text-gray-900 border-0 bg-transparent resize-none focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white rounded px-2 py-1"
+            value={task.task_notes || ''} 
+            onChange={(e) => onUpdate(task.id, { task_notes: e.target.value })}
+            onBlur={() => onUpdate(task.id, { task_notes: task.task_notes })}
+            rows={2}
+            placeholder="Add task notes..."
+          />
         </div>
 
         {/* Status */}
         <div className="col-span-1 flex items-center">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-            {task.status.replace('_', ' ')}
-          </span>
+          <select 
+            className={`text-xs font-medium border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 rounded px-2 py-1 ${getStatusColor(task.status)}`}
+            value={task.status} 
+            onChange={(e) => onUpdate(task.id, { status: e.target.value as 'OPENED' | 'WORKING' | 'CLOSED' })}
+          >
+            <option value="OPENED">Open</option>
+            <option value="WORKING">Working</option>
+            <option value="CLOSED">Closed</option>
+          </select>
         </div>
 
         {/* Created */}
         <div className="col-span-1 flex items-center">
-          <span className="text-sm text-gray-500">{formatDate(task.created)}</span>
+          <span className="text-sm text-gray-500">{formatDate(task.opened_at)}</span>
         </div>
       </div>
 
@@ -194,7 +230,7 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
               transition={{ duration: 0.15 }}
               className="absolute right-0 top-8 z-10 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1"
             >
-              {task.status === 'open' && (
+              {task.status === 'OPENED' && (
                 <button
                   onClick={handleMarkInProgress}
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -202,11 +238,11 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Mark as In Progress
+                  Mark as Working
                 </button>
               )}
               
-              {task.status === 'in_progress' && (
+              {task.status === 'WORKING' && (
                 <button
                   onClick={handleMarkComplete}
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -214,11 +250,11 @@ export default function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Mark as Complete
+                  Mark as Closed
                 </button>
               )}
               
-              {task.status === 'completed' && (
+              {task.status === 'CLOSED' && (
                 <button
                   onClick={handleReopen}
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
