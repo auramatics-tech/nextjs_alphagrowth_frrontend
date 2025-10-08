@@ -1,5 +1,4 @@
 export { default as AddIdentityModal } from './AddIdentityModal';
-export { default as LinkedInPopup } from './LinkedInPopup';
 export { default as EnhancedLinkedInPopup } from './EnhancedLinkedInPopup';
 export { default as SmtpPopup } from './SmtpPopup';
 export { default as EmailConnectionDropdown } from './EmailConnectionDropdown';

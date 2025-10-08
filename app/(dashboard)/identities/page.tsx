@@ -10,7 +10,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 
 import AddIdentityModal from '@/components/identities/AddIdentityModal';
-import { LinkedInPopup, EnhancedLinkedInPopup, SmtpPopup } from '@/components/identities';
+import { EnhancedLinkedInPopup, SmtpPopup } from '@/components/identities';
 import { EmailConnectionDropdown } from '@/components/identities';
 import { identityService } from '@/services/identityService';
 import { Identity } from '@/types/identity.types';
@@ -473,45 +473,45 @@ export default function IdentitiesPage() {
                     </div>
                 )}
             </div>
- 
 
-            {/* Modals */ }
-    <AnimatePresence>
-        {isModalOpen && (
-            <AddIdentityModal
-                onClose={() => setIsModalOpen(false)}
-                onAddIdentity={handleAddIdentity}
-            />
-        )}
-        {isLinkedInPopupOpen && selectedIdentityId && (
-            <EnhancedLinkedInPopup
-                identityId={selectedIdentityId}
-                onClose={() => {
-                    setIsLinkedInPopupOpen(false);
-                    setSelectedIdentityId(null);
-                }}
-                onSuccess={() => {
-                    loadIdentities();
-                    setIsLinkedInPopupOpen(false);
-                    setSelectedIdentityId(null);
-                }}
-            />
-        )}
-        {isSmtpPopupOpen && selectedIdentityId && (
-            <SmtpPopup
-                identityId={selectedIdentityId}
-                onClose={() => {
-                    setIsSmtpPopupOpen(false);
-                    setSelectedIdentityId(null);
-                }}
-                onSuccess={() => {
-                    loadIdentities();
-                    setIsSmtpPopupOpen(false);
-                    setSelectedIdentityId(null);
-                }}
-            />
-        )}
-    </AnimatePresence>
+
+            {/* Modals */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <AddIdentityModal
+                        onClose={() => setIsModalOpen(false)}
+                        onAddIdentity={handleAddIdentity}
+                    />
+                )}
+                {isLinkedInPopupOpen && selectedIdentityId && (
+                    <EnhancedLinkedInPopup
+                        identityId={selectedIdentityId}
+                        onClose={() => {
+                            setIsLinkedInPopupOpen(false);
+                            setSelectedIdentityId(null);
+                        }}
+                        onSuccess={() => {
+                            loadIdentities();
+                            setIsLinkedInPopupOpen(false);
+                            setSelectedIdentityId(null);
+                        }}
+                    />
+                )}
+                {isSmtpPopupOpen && selectedIdentityId && (
+                    <SmtpPopup
+                        identityId={selectedIdentityId}
+                        onClose={() => {
+                            setIsSmtpPopupOpen(false);
+                            setSelectedIdentityId(null);
+                        }}
+                        onSuccess={() => {
+                            loadIdentities();
+                            setIsSmtpPopupOpen(false);
+                            setSelectedIdentityId(null);
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div >
     );
 }

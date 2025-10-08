@@ -3,9 +3,18 @@ import { apiClient } from '../lib/apiClient';
 export interface Identity {
   id: string;
   name: string;
+  company_name?: string;
   email?: string;
+  image?: string;
   status?: string;
   linkedin_sign?: string;
+  email_detail?: {
+    connection_status: string;
+    provider_type?: string;
+  };
+  phone_detail?: {
+    connection_status: string;
+  };
   identity_requests?: Array<{
     id: string;
     type: string;
@@ -17,7 +26,8 @@ export interface Identity {
 
 export interface CreateIdentityRequest {
   name: string;
-  email?: string;
+  company_name: string;
+  email: string;
 }
 
 export interface UpdateIdentityRequest {
@@ -83,8 +93,8 @@ export const identityService = {
    */
   createIdentity: async (data: CreateIdentityRequest): Promise<Identity> => {
     try {
-      const response = await apiClient.post('/pub/v1/identities', data);
-      return response.data.data;
+      const response = await apiClient.post('/pub/v1/identities/create', data);
+      return response.data;
     } catch (error) {
       console.error('Error creating identity:', error);
       throw error;
@@ -160,7 +170,7 @@ export const identityService = {
    */
   connectLinkedIn: async (data: { identity_id: string; data: any; type: string }): Promise<any> => {
     try {
-      const response = await apiClient.post('/pub/v1/identities/linkedin', data);
+      const response = await apiClient.post('/pub/v1/linkedin-connections/save-credentials', data);
       return response.data;
     } catch (error) {
       console.error('Error connecting LinkedIn:', error);
@@ -173,7 +183,7 @@ export const identityService = {
    */
   checkConnectionStatus: async (connectionStatusId: string): Promise<any> => {
     try {
-      const response = await apiClient.get(`/pub/v1/identities/connection-status/${connectionStatusId}`);
+      const response = await apiClient.get(`/pub/v1/linkedin-connections/check-connection-status/${connectionStatusId}`);
       return response.data;
     } catch (error) {
       console.error('Error checking connection status:', error);
@@ -186,7 +196,7 @@ export const identityService = {
    */
   verifyLinkedInCaptcha: async (data: { code: string; type: string; connection_id: string }): Promise<any> => {
     try {
-      const response = await apiClient.post('/pub/v1/identities/verify-captcha', data);
+      const response = await apiClient.post('/pub/v1/linkedin-connections/verify', data);
       return response.data;
     } catch (error) {
       console.error('Error verifying LinkedIn captcha:', error);
