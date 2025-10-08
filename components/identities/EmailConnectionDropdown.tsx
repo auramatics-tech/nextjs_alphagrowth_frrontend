@@ -149,14 +149,7 @@ export default function EmailConnectionDropdown({
                   <span>Other provider (SMTP)</span>
                 </button>
 
-                <div className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-500">
-                  <div className="w-5 h-5 flex items-center justify-center">
-                    <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
-                      <span className="text-xs text-white font-bold">M</span>
-                    </div>
-                  </div>
-                  <span>Outlook (Coming Soon)</span>
-                </div>
+                
               </div>
 
               <div className="mt-2 pt-2 border-t border-gray-100">

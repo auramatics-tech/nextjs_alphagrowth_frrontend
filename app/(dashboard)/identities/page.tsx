@@ -13,6 +13,7 @@ import AddIdentityModal from '@/components/identities/AddIdentityModal';
 import { EnhancedLinkedInPopup, SmtpPopup, IdentityCard } from '@/components/identities';
 
 import { identityService } from '@/services/identityService';
+import { emailService } from '@/services/emailService';
 import { Identity } from '@/types/identity.types';
 
 // --- Reusable Components ---
@@ -62,7 +63,7 @@ export default function IdentitiesPage() {
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get("code");
-        const identityId = localStorage.getItem("google_identity_id");
+        const identityId = localStorage.getItem("gmail_identity_id");
 
         // Prevent running again if already called
         if (!code || !identityId) return;
@@ -74,7 +75,7 @@ export default function IdentitiesPage() {
         const runOAuthFlow = async () => {
             try {
                 // 1️⃣ Call OAuth API
-                await (identityService as any).googleOAuth({ code, identity_id: identityId });
+                await emailService.handleGmailCallback(code, identityId);
 
                 // 2️⃣ Redirect to /identities without query params
                 window.history.replaceState({}, document.title, "/identities");
