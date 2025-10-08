@@ -3,236 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    PlusCircle, X, Lightbulb, ChevronDown, Linkedin, Mail, Phone, CheckCircle,
-    AlertCircle, Save, User as UserIcon, Building, Upload, MoreHorizontal, Check,
-    Loader2, RefreshCw, Trash2, Edit3, Settings, Clock
+    PlusCircle, X,
+    AlertCircle, User as UserIcon,
+    Loader2, RefreshCw,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+
 
 import AddIdentityModal from '@/components/identities/AddIdentityModal';
-import { EnhancedLinkedInPopup, SmtpPopup } from '@/components/identities';
-import { EmailConnectionDropdown } from '@/components/identities';
+import { EnhancedLinkedInPopup, SmtpPopup, IdentityCard } from '@/components/identities';
+
 import { identityService } from '@/services/identityService';
 import { Identity } from '@/types/identity.types';
 
 // --- Reusable Components ---
 
-const ChannelConnectButton = ({
-    channel,
-    status,
-    onClick,
-    isLoading = false
-}: {
-    channel: 'linkedin' | 'email' | 'phone';
-    status: 'connected' | 'disconnected' | 'verified' | 'unverified';
-    onClick: () => void;
-    isLoading?: boolean;
-}) => {
-    const isConnected = status === 'connected' || status === 'verified';
-    const channelConfig = {
-        linkedin: { icon: Linkedin, label: "LinkedIn", color: "blue" },
-        email: { icon: Mail, label: "Email", color: "red" },
-        phone: { icon: Phone, label: "Phone", color: "green" },
-    };
-    const config = channelConfig[channel];
 
-    if (isConnected) {
-        return (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                <CheckCircle size={14} className="text-green-600" />
-                Connected
-            </div>
-        );
-    }
 
-    return (
-        <button
-            onClick={onClick}
-            disabled={isLoading}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-            {isLoading ? (
-                <Loader2 size={14} className="animate-spin" />
-            ) : (
-                <config.icon size={14} className={`text-${config.color}-500`} />
-            )}
-            Connect {config.label}
-        </button>
-    );
-};
-
-const IdentityCard = ({
-    identity,
-    onLinkedInConnect,
-    onEmailConnect,
-    onPhoneConnect,
-    onLinkedInSignout,
-    onEmailSignout,
-    onEdit,
-    onDelete,
-    onRefresh,
-    onLimitsHours,
-    isLoading
-}: {
-    identity: Identity;
-    onLinkedInConnect: (id: string) => void;
-    onEmailConnect: (id: string) => void;
-    onPhoneConnect: (id: string) => void;
-    onLinkedInSignout: (id: string) => void;
-    onEmailSignout: (id: string) => void;
-    onEdit: (id: string) => void;
-    onDelete: (id: string) => void;
-    onRefresh: () => void;
-    onLimitsHours: (id: string) => void;
-    isLoading: boolean;
-}) => {
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [isSigningOut, setIsSigningOut] = useState<string | null>(null);
-
-    const getLinkedInStatus = () => {
-        console.log('LinkedIn status for', identity.name, ':', identity.linkedin_sign);
-        if (identity.linkedin_sign === 'loggedin') return 'connected';
-        if (identity.linkedin_sign === 'requested') return 'disconnected';
-        return 'disconnected';
-    };
-
-    const getEmailStatus = () => {
-        console.log('Email status for', identity.name, ':', identity.email_detail);
-        if (identity.email_detail?.connection_status === 'loggedin') return 'connected';
-        if (identity.email_detail?.connection_status === 'requested') return 'disconnected';
-        return 'disconnected';
-    };
-
-    const getPhoneStatus = () => {
-        console.log('Phone status for', identity.name, ':', identity.phone_detail);
-        if (identity.phone_detail?.connection_status === 'verified') return 'verified';
-        return 'unverified';
-    };
-
-    const handleLinkedInAction = () => {
-        if (getLinkedInStatus() === 'connected') {
-            setIsSigningOut(identity.id);
-            onLinkedInSignout(identity.id);
-        } else {
-            onLinkedInConnect(identity.id);
-        }
-    };
-
-    const handleEmailAction = () => {
-        if (getEmailStatus() === 'connected') {
-            setIsSigningOut(identity.id);
-            onEmailSignout(identity.id);
-        } else {
-            onEmailConnect(identity.id);
-        }
-    };
-
-    return (
-        <motion.div
-            className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-        >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <img
-                        src={identity.image || `https://placehold.co/40x40/FF6B2C/FFFFFF?text=${identity.name.charAt(0)}`}
-                        alt={identity.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                        <h3 className="font-semibold text-gray-900">{identity.name}</h3>
-                        <p className="text-sm text-gray-500">{identity.email || 'No email provided'}</p>
-                        <p className="text-xs text-gray-400">{identity.company_name || 'No company provided'}</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="flex gap-2">
-                        <ChannelConnectButton
-                            channel="linkedin"
-                            status={getLinkedInStatus()}
-                            onClick={handleLinkedInAction}
-                            isLoading={isSigningOut === identity.id}
-                        />
-                        <EmailConnectionDropdown
-                            identity={identity}
-                            onSmtpConnect={onEmailConnect}
-                            onRefresh={onRefresh}
-                        />
-                        <ChannelConnectButton
-                            channel="phone"
-                            status={getPhoneStatus()}
-                            onClick={() => onPhoneConnect(identity.id)}
-                        />
-                    </div>
-
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"
-                        >
-                            <MoreHorizontal size={20} />
-                        </button>
-
-                        <AnimatePresence>
-                            {showDropdown && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
-                                >
-                                    <div className="py-1">
-                                        <button
-                                            onClick={() => {
-                                                onEdit(identity.id);
-                                                setShowDropdown(false);
-                                            }}
-                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                        >
-                                            <Edit3 size={16} />
-                                            Edit Identity
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                onLimitsHours(identity.id);
-                                                setShowDropdown(false);
-                                            }}
-                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                        >
-                                            <Clock size={16} />
-                                            Limits & Hours
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                onDelete(identity.id);
-                                                setShowDropdown(false);
-                                            }}
-                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                                        >
-                                            <Trash2 size={16} />
-                                            Delete Identity
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            </div>
-
-            {identity.created_at && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                        Created {formatDistanceToNow(new Date(identity.created_at), { addSuffix: true })}
-                    </p>
-                </div>
-            )}
-        </motion.div>
-    );
-};
 
 // --- Main Page Component ---
 export default function IdentitiesPage() {
@@ -250,8 +36,9 @@ export default function IdentitiesPage() {
         try {
             setIsLoading(true);
             setError(null);
-            // identityService.getIdentities returns Identity[] (normalized service)
+
             const list = await identityService.getIdentities();
+
             if (Array.isArray(list)) {
                 setIdentities(list as any);
             } else {
@@ -307,20 +94,7 @@ export default function IdentitiesPage() {
     }, [loadIdentities]);
 
 
-    const handleAddIdentity = async (identityData: any) => {
-        try {
-            const response = await identityService.createIdentity(identityData);
-            if ((response as any).success) {
-                await loadIdentities();
-                setIsModalOpen(false);
-            } else {
-                setError((response as any).message || 'Failed to create identity');
-            }
-        } catch (err: any) {
-            console.error('Error creating identity:', err);
-            setError('Failed to create identity. Please try again.');
-        }
-    };
+
 
     const handleLinkedInConnect = (identityId: string) => {
         setSelectedIdentityId(identityId);
@@ -332,55 +106,18 @@ export default function IdentitiesPage() {
         setIsSmtpPopupOpen(true);
     };
 
-    const handlePhoneConnect = (identityId: string) => {
-        // Phone connection logic
-        console.log('Phone connect for:', identityId);
-    };
 
-    const handleLinkedInSignout = async (identityId: string) => {
-        try {
-            setIsSigningOut(identityId);
-            await (identityService as any).signout(identityId, { type: 'LINKEDIN' });
-            await loadIdentities();
-        } catch (err: any) {
-            console.error('LinkedIn signout failed:', err);
-            setError('Failed to sign out from LinkedIn');
-        } finally {
-            setIsSigningOut(null);
-        }
-    };
 
-    const handleEmailSignout = async (identityId: string) => {
-        try {
-            setIsSigningOut(identityId);
-            const identity = identities.find(id => id.id === identityId);
-            const providerType = identity?.email_detail?.provider_type || 'GMAIL';
-            await (identityService as any).signout(identityId, { type: providerType as any });
-            await loadIdentities();
-        } catch (err: any) {
-            console.error('Email signout failed:', err);
-            setError('Failed to sign out from email');
-        } finally {
-            setIsSigningOut(null);
-        }
-    };
+
+
 
     const handleEdit = (identityId: string) => {
         // Navigate to identity management page
         window.location.href = `/identities/${identityId}`;
     };
 
-    const handleLimitsHours = (identityId: string) => {
-        // Navigate to identity management page with limits tab
-        window.location.href = `/identities/${identityId}?tab=limits`;
-    };
 
-    const handleDelete = async (identityId: string) => {
-        if (window.confirm('Are you sure you want to delete this identity?')) {
-            // Delete functionality
-            console.log('Delete identity:', identityId);
-        }
-    };
+
 
     return (
         <div className="max-w-7xl mx-auto">
@@ -446,13 +183,8 @@ export default function IdentitiesPage() {
                                     identity={identity}
                                     onLinkedInConnect={handleLinkedInConnect}
                                     onEmailConnect={handleEmailConnect}
-                                    onPhoneConnect={handlePhoneConnect}
-                                    onLinkedInSignout={handleLinkedInSignout}
-                                    onEmailSignout={handleEmailSignout}
                                     onEdit={handleEdit}
-                                    onDelete={handleDelete}
                                     onRefresh={loadIdentities}
-                                    onLimitsHours={handleLimitsHours}
                                     isLoading={isSigningOut === identity.id}
                                 />
                             ))
@@ -480,7 +212,7 @@ export default function IdentitiesPage() {
                 {isModalOpen && (
                     <AddIdentityModal
                         onClose={() => setIsModalOpen(false)}
-                        onAddIdentity={handleAddIdentity}
+                        loadIdentities={loadIdentities}
                     />
                 )}
                 {isLinkedInPopupOpen && selectedIdentityId && (

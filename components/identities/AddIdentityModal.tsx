@@ -4,13 +4,15 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Building, Mail } from 'lucide-react';
 import { CreateIdentityRequest } from '../../types/identity.types';
+import { identityService } from '@/services/identityService';
 
 interface AddIdentityModalProps {
     onClose: () => void;
-    onAddIdentity: (data: CreateIdentityRequest) => void;
+   
+    loadIdentities:any
 }
 
-export default function AddIdentityModal({ onClose, onAddIdentity }: AddIdentityModalProps) {
+export default function AddIdentityModal({ onClose, loadIdentities }: AddIdentityModalProps) {
     const [formData, setFormData] = useState<CreateIdentityRequest>({
         name: '',
         company_name: '',
@@ -28,7 +30,7 @@ export default function AddIdentityModal({ onClose, onAddIdentity }: AddIdentity
     const handleSubmit = async () => {
         try {
             setIsSubmitting(true);
-            await onAddIdentity(formData);
+            await handleAddIdentity(formData);
             onClose(); // Close the popup after successful creation
         } catch (error) {
             console.error('Error creating identity:', error);
@@ -40,6 +42,21 @@ export default function AddIdentityModal({ onClose, onAddIdentity }: AddIdentity
     const isFormValid = formData.name.trim() !== '' && 
                        formData.company_name.trim() !== '' && 
                        formData.email.trim() !== '';
+
+                        const handleAddIdentity = async (identityData: any) => {
+        try {
+            const response = await identityService.createIdentity(identityData);
+            if ((response as any).success) {
+                await loadIdentities();
+                onClose();
+            } else {
+              
+            }
+        } catch (err: any) {
+            console.error('Error creating identity:', err);
+      
+        }
+    };
 
     return (
         <AnimatePresence>

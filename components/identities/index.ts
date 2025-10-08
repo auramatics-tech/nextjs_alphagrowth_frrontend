@@ -6,3 +6,4 @@ export { default as EmailVerificationPopup } from './EmailVerificationPopup';
 export { default as VerificationCodePopup } from './VerificationCodePopup';
 export { default as AudioCaptchaPopup } from './AudioCaptchaPopup';
 export { default as ConnectionStatusPoller } from './ConnectionStatusPoller';
+export { default as IdentityCard } from './IdentityCard';
