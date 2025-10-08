@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     PlusCircle, X, Lightbulb, ChevronDown, Linkedin, Mail, Phone, CheckCircle,
     AlertCircle, Save, User as UserIcon, Building, Upload, MoreHorizontal, Check,
-    Loader2, RefreshCw, Trash2, Edit3, Settings
+    Loader2, RefreshCw, Trash2, Edit3, Settings, Clock
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -71,6 +71,7 @@ const IdentityCard = ({
     onEdit,
     onDelete,
     onRefresh,
+    onLimitsHours,
     isLoading
 }: {
     identity: Identity;
@@ -82,6 +83,7 @@ const IdentityCard = ({
     onEdit: (id: string) => void;
     onDelete: (id: string) => void;
     onRefresh: () => void;
+    onLimitsHours: (id: string) => void;
     isLoading: boolean;
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
@@ -192,6 +194,16 @@ const IdentityCard = ({
                                         >
                                             <Edit3 size={16} />
                                             Edit Identity
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                onLimitsHours(identity.id);
+                                                setShowDropdown(false);
+                                            }}
+                                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        >
+                                            <Clock size={16} />
+                                            Limits & Hours
                                         </button>
                                         <button
                                             onClick={() => {
@@ -354,8 +366,13 @@ export default function IdentitiesPage() {
     };
 
     const handleEdit = (identityId: string) => {
-        // Edit functionality
-        console.log('Edit identity:', identityId);
+        // Navigate to identity management page
+        window.location.href = `/identities/${identityId}`;
+    };
+
+    const handleLimitsHours = (identityId: string) => {
+        // Navigate to identity management page with limits tab
+        window.location.href = `/identities/${identityId}?tab=limits`;
     };
 
     const handleDelete = async (identityId: string) => {
@@ -435,6 +452,7 @@ export default function IdentitiesPage() {
                                     onEdit={handleEdit}
                                     onDelete={handleDelete}
                                     onRefresh={loadIdentities}
+                                    onLimitsHours={handleLimitsHours}
                                     isLoading={isSigningOut === identity.id}
                                 />
                             ))
