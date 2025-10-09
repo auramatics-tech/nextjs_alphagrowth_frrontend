@@ -1,31 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-interface Conversation {
-  id: string;
-  contact: {
-    name: string;
-    avatar: string;
-    company: string;
-    title: string;
-    verified: boolean;
-    leadStatus: string;
-    dealValue: string;
-    emails: string[];
-    linkedinUrl: string;
-    campaign: string;
-  };
-  lastMessage: {
-    content: string;
-    timestamp: string;
-    type: string;
-  };
-  unreadCount: number;
-  channel: string;
-  messages: any[];
-}
+ 
 
 interface ConversationListItemProps {
   conversation: any;
@@ -75,6 +53,12 @@ export default function ConversationListItem({
     }
   };
 
+
+  useEffect(()=>{
+console.log("conversation------conversation",conversation);
+
+  },[conversation])
+
   return (
     <motion.div
       whileHover={{ scale: 1.01 }}
@@ -114,7 +98,7 @@ export default function ConversationListItem({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900 truncate">
-                {(conversation as any)?.lead?.first_name}
+                {(conversation as any)?.lead?.first_name} / {conversation?.identity?.name}
               </h3>
               {/* {conversation.contact.verified && (
                 <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">

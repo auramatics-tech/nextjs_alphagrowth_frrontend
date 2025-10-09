@@ -49,8 +49,12 @@ export default function MessageBubble({ message }: any) {
               </div>
               <div className="text-sm opacity-90">
                 <div className="font-medium">Subject: {parsedData.subject}</div>
-                <div className="mt-1">{parsedData.message || parsedData.body}</div>
-                                                            {/* <div dangerouslySetInnerHTML={{ __html: (parsedData?.body  )?.replace(/&lt;/g, '<')?.replace(/&gt;/g, '>') }} /> */}
+                <div 
+                  className="mt-1"
+                  dangerouslySetInnerHTML={{ 
+                    __html: (parsedData.message || parsedData.body || '')?.replace(/&lt;/g, '<')?.replace(/&gt;/g, '>') 
+                  }}
+                />
 
               </div>
             </div>
