@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface Contact {
@@ -17,13 +17,13 @@ interface Contact {
 }
 
 interface ChatHeaderProps {
-  contact: Contact;
+  contact: any;
   onToggleProfile: () => void;
 }
 
 export default function ChatHeader({ contact, onToggleProfile }: ChatHeaderProps) {
   const getLeadStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'interested':
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'qualified':
@@ -37,6 +37,12 @@ export default function ChatHeader({ contact, onToggleProfile }: ChatHeaderProps
     }
   };
 
+
+  useEffect(()=>{
+console.log("contact=====",contact);
+
+  },[contact])
+
   return (
     <div className="border-b border-gray-100 p-6">
       <div className="flex items-center justify-between">
@@ -45,8 +51,8 @@ export default function ChatHeader({ contact, onToggleProfile }: ChatHeaderProps
           <div className="relative">
             <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
               <img 
-                src={contact.avatar} 
-                alt={contact.name}
+                src={"/avatars/default-avatar.jpg"} 
+                alt={contact?.first_name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -56,18 +62,18 @@ export default function ChatHeader({ contact, onToggleProfile }: ChatHeaderProps
                 }}
               />
               <div className="w-full h-full bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-lg" style={{ display: 'none' }}>
-                {contact.name.split(' ').map(n => n[0]).join('')}
+                {contact?.first_name?.split(' ').map((n:any) => n[0]).join('')}
               </div>
             </div>
-            {/* Online indicator */}
+            
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
           </div>
 
           {/* Contact Info */}
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-gray-900">{contact.name}</h2>
-              {contact.verified && (
+              <h2 className="text-lg font-semibold text-gray-900">{contact?.first_name}</h2>
+              {contact?.verified && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -80,11 +86,11 @@ export default function ChatHeader({ contact, onToggleProfile }: ChatHeaderProps
               )}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLeadStatusColor(contact.leadStatus)}`}>
-                {contact.leadStatus}
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getLeadStatusColor(contact?.lead_status)}`}>
+                {contact?.lead_status}
               </span>
               <button className="text-sm text-blue-600 hover:text-blue-800 transition-colors">
-                {contact.campaign}
+                {contact?.campaign}
               </button>
             </div>
           </div>

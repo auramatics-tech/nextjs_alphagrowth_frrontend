@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import ConversationListItem from './ConversationListItem';
 
@@ -41,10 +41,16 @@ export default function ConversationListPanel({
 }: ConversationListPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredConversations = conversations.filter(conversation =>
-    conversation.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conversation.contact.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+ 
+
+
+useEffect(()=>{
+
+  console.log("conversations-----11",conversations);
+  
+
+},[conversations])
+
 
   return (
     <div className="flex flex-col h-full">
@@ -54,7 +60,7 @@ export default function ConversationListPanel({
           <h2 className="text-lg font-bold text-gray-900">Messages</h2>
           <div className="flex items-center gap-2">
             <span className="bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-              {conversations.reduce((total, conv) => total + conv.unreadCount, 0)}
+              {/* {conversations.reduce((total, conv) => total + conv.unreadCount, 0)} */}
             </span>
             <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,13 +87,13 @@ export default function ConversationListPanel({
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredConversations.length === 0 ? (
+        {conversations.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
             <p>No conversations found</p>
           </div>
         ) : (
           <div className="space-y-1 p-2">
-            {filteredConversations.map((conversation, index) => (
+            {conversations.map((conversation, index) => (
               <motion.div
                 key={conversation.id}
                 initial={{ opacity: 0, y: 20 }}

@@ -40,6 +40,8 @@ export default function ProfilePanel({ contact, onClose }: ProfilePanelProps) {
 
   // Update editedContact when contact prop changes
   useEffect(() => {
+    console.log("contact9999contact---",contact);
+    
     if (contact) {
       setEditedContact(contact);
     }

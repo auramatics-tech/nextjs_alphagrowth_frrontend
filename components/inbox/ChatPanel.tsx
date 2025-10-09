@@ -6,32 +6,10 @@ import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 
-interface Conversation {
-  id: string;
-  contact: {
-    name: string;
-    avatar: string;
-    company: string;
-    title: string;
-    verified: boolean;
-    leadStatus: string;
-    dealValue: string;
-    emails: string[];
-    linkedinUrl: string;
-    campaign: string;
-  };
-  lastMessage: {
-    content: string;
-    timestamp: string;
-    type: string;
-  };
-  unreadCount: number;
-  channel: string;
-  messages: any[];
-}
+ 
 
 interface ChatPanelProps {
-  conversation: Conversation | null;
+  conversation: any | null;
   onToggleProfile: () => void;
   onSendMessage?: (leadId: string, message: string, channel: 'linkedin' | 'email', subject?: string) => void;
 }
@@ -47,6 +25,11 @@ export default function ChatPanel({ conversation, onToggleProfile, onSendMessage
   useEffect(() => {
     scrollToBottom();
   }, [conversation?.messages]);
+
+    useEffect(()=>{
+console.log("conversation----",conversation);
+
+  },[conversation])
 
   if (!conversation) {
     return (
@@ -64,9 +47,9 @@ export default function ChatPanel({ conversation, onToggleProfile, onSendMessage
     );
   }
 
-  const groupedMessages = conversation.messages.reduce((groups: any, message: any) => {
+  const groupedMessages = conversation?.messages?.reduce((groups: any, message: any) => {
     console.log('Processing message for grouping:', message);
-    const date = new Date(message.timestamp || message.created_at).toDateString();
+    const date = new Date(message?.timestamp || message?.created_at)?.toDateString();
     console.log('Message date:', date);
     if (!groups[date]) {
       groups[date] = [];
@@ -77,17 +60,20 @@ export default function ChatPanel({ conversation, onToggleProfile, onSendMessage
   
   console.log('Final grouped messages:', groupedMessages);
 
+
+
+
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
       <ChatHeader 
-        contact={conversation.contact}
+        contact={conversation.lead}
         onToggleProfile={onToggleProfile}
       />
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {Object.keys(groupedMessages).length === 0 ? (
+        {groupedMessages &&   Object.keys(groupedMessages).length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -96,10 +82,10 @@ export default function ChatPanel({ conversation, onToggleProfile, onSendMessage
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No messages yet</h3>
-              <p className="text-gray-600">Start a conversation with {conversation.contact.name}</p>
+              <p className="text-gray-600">Start a conversation with {conversation?.lead?.first_name}</p>
             </div>
           </div>
-        ) : (
+        ) : (groupedMessages &&
           Object.entries(groupedMessages).map(([date, messages]: [string, any]) => (
           <div key={date}>
             {/* Date Separator */}

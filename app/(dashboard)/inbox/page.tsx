@@ -18,7 +18,7 @@ interface Identity {
 
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [isProfileVisible, setIsProfileVisible] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [identities, setIdentities] = useState<Identity[]>([]);
@@ -29,61 +29,22 @@ export default function InboxPage() {
   const loadConversations = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('Loading conversations with selectedIdentity:', selectedIdentity);
+
       const response = await inboxService.getAllLeads();
-      
-      console.log("response----",response);
-      
-      // Handle different response structures
-      const messageRepliedLeads: MessageRepliedLead[] = response.data || response.leads || response || [];
-      
-      if (messageRepliedLeads.length > 0) {
-        // Transform message replied leads into conversations (without pre-loading messages)
-        const conversations = messageRepliedLeads.map((messageRepliedLead) => {
-          const lead = messageRepliedLead.lead; // Extract the actual lead data
-          
-          // Get lead status and deal value from messageRepliedLead
-          const leadStatus = messageRepliedLead.lead_status || 'Not Set';
-          const dealValue = messageRepliedLead.deal_value ? `$${messageRepliedLead.deal_value}` : 'Not Set';
-          
-          const conversation: Conversation = {
-            id: lead.id,
-            leadId: lead.id, // Store the actual lead ID
-            identityId: messageRepliedLead?.identity_id, // Store the identity ID
-    contact: {
-              name: `${lead.first_name || 'Unknown'} ${lead.last_name || 'Contact'}`,
-              avatar: '/avatars/default-avatar.jpg',
-              company: lead.company_name || 'Unknown Company',
-              title: lead.job || 'Unknown',
-              verified: false,
-              leadStatus: leadStatus,
-              dealValue: dealValue,
-              emails: [lead.pro_email, lead.perso_email].filter(Boolean) as string[],
-              linkedinUrl: lead.linkedin || lead.profile_url || '',
-              phone: lead.phone || '',
-              campaign: 'Inbox'
-    },
-    lastMessage: {
-              content: 'Click to load messages',
-              timestamp: new Date().toISOString(),
-      type: 'system'
-    },
-            unreadCount: 0,
-    channel: 'linkedin',
-            messages: [] // Start with empty messages, load on-demand
-          };
-          
-          console.log('Created conversation for lead', lead.id, ':', conversation);
-          return conversation;
-        });
-        
-        console.log('Loaded conversations:', conversations);
-        console.log('First conversation details:', conversations[0]);
-        setConversations(conversations);
-        
-        if (conversations.length > 0) {
-          setSelectedConversation(conversations[0]);
-        }
+
+
+
+
+
+      if (response.data.length > 0) {
+
+
+
+        setConversations(response.data);
+
+
+        setSelectedConversation(response.data[0]);
+
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -94,68 +55,43 @@ export default function InboxPage() {
     }
   }, [selectedIdentity]);
 
-  // Load identities and conversations on component mount
-  useEffect(() => {
-    loadIdentities();
-  }, []);
+
 
   // Load conversations when identity is selected
   useEffect(() => {
-    if (selectedIdentity) {
-      loadConversations();
-    }
+
+    loadConversations();
+
   }, [selectedIdentity, loadConversations]);
 
-  const loadIdentities = async () => {
-    try {
-      setLoading(true);
-      const response = await inboxService.getIdentities();
-      console.log('Identities response:', response);
-      // Handle different response structures
-      const identities = response.identities || response.data || response || [];
-      console.log('Identities array:', identities);
-      setIdentities(identities);
-      if (identities.length > 0) {
-        console.log('Setting selected identity to:', identities[0].id);
-        setSelectedIdentity(identities[0].id);
-      } else {
-        console.warn('No identities found. Please add an identity first.');
-        toast.error('No identities found. Please add an identity first.');
-      }
-    } catch (error) {
-      console.error('Error loading identities:', error);
-      setError('Failed to load identities');
-      toast.error('Failed to load identities');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleConversationSelect = async (conversation: Conversation) => {
-    console.log('Conversation selected:', conversation.id);
-    console.log('Conversation details:', conversation);
-    
+
+  const handleConversationSelect = async (conversation: any) => {
+
+
     try {
       // Make fresh API call to get messages (like frontend_old)
-      const inboxResponse = await inboxService.getInboxMessages(conversation.leadId, conversation.identityId);
-      console.log('Fresh inbox response for lead', conversation.leadId, ':', inboxResponse);
-      
+      console.log("conversation0000----=", conversation);
+
+      const inboxResponse = await inboxService.getInboxMessages(conversation?.lead?.id, conversation.identity_id);
+
       const messages: InboxMessage[] = inboxResponse.data || [];
-      console.log('Fresh messages for lead', conversation.leadId, ':', messages);
-      
+
+console.log("messages------------------------",messages);
+
       // Transform messages to conversation format
       const transformedMessages = messages.map(msg => {
-        console.log('Processing message:', msg);
+
         let content = 'System message';
         let messageType = msg.type;
         let recordingUrl = null;
         let transcript = null;
-        
+
         if (msg.message) {
           try {
             const parsed = JSON.parse(msg.message);
-            console.log('Parsed message:', parsed);
-            
+
+
             // Handle voice call recordings
             if (msg.type === 'voice_call_recording' && parsed && typeof parsed === 'object' && parsed.recordingUrl) {
               content = 'Voice call recording';
@@ -197,11 +133,11 @@ export default function InboxPage() {
             content = msg.message;
           }
         }
-        
+
         // Define all types that come from the other user (like frontend_old)
         const otherUserTypes = new Set(["reply_message"]);
         const isFromUser = !otherUserTypes.has(msg.type);
-        
+
         return {
           id: msg.id,
           type: isFromUser ? 'outgoing' : 'incoming',
@@ -214,7 +150,10 @@ export default function InboxPage() {
           transcript: transcript
         };
       });
-      
+
+      console.log("transformedMessages---", transformedMessages);
+
+
       // Update the conversation with fresh messages
       const updatedConversation = {
         ...conversation,
@@ -225,10 +164,10 @@ export default function InboxPage() {
           type: 'system'
         }
       };
-      
-      console.log('Updated conversation with fresh messages:', updatedConversation);
+
+
       setSelectedConversation(updatedConversation as any);
-      
+
     } catch (error) {
       console.error('Error loading messages for conversation:', error);
       // Still set the conversation even if message loading fails
@@ -253,7 +192,7 @@ export default function InboxPage() {
 
       await inboxService.sendMessage(leadId, messageData);
       toast.success(`Message sent via ${channel}`);
-      
+
       // Reload conversations to show the new message
       loadConversations();
     } catch (error) {
@@ -262,12 +201,9 @@ export default function InboxPage() {
     }
   };
 
-  const filteredConversations = conversations.filter(conversation =>
-    conversation.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conversation.contact.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
-  if (loading && conversations.length === 0) {
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -284,10 +220,10 @@ export default function InboxPage() {
         <div className="text-center">
           <div className="text-red-500 text-xl mb-4">⚠️</div>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
+          <button
             onClick={() => {
               setError(null);
-              loadIdentities();
+
             }}
             className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
           >
@@ -305,22 +241,9 @@ export default function InboxPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
             <h1 className="text-xl font-bold text-gray-900">Inbox</h1>
-            
+
             {/* Identity Selector */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Identity:</label>
-              <select
-                value={selectedIdentity}
-                onChange={(e) => setSelectedIdentity(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                {identities.map((identity) => (
-                  <option key={identity.id} value={identity.id}>
-                    {identity.name} ({identity.company})
-                  </option>
-                ))}
-              </select>
-            </div>
+
 
             <div className="relative">
               <input
@@ -336,7 +259,7 @@ export default function InboxPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={loadConversations}
               disabled={loading}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
@@ -359,8 +282,8 @@ export default function InboxPage() {
       <div className="flex h-[calc(100vh-80px)]">
         {/* Left Pane - Conversation List (25%) */}
         <div className="w-1/4 bg-white border-r border-gray-100 flex flex-col">
-          <ConversationListPanel 
-            conversations={filteredConversations}
+          <ConversationListPanel
+            conversations={conversations}
             selectedConversation={selectedConversation}
             onConversationSelect={handleConversationSelect as any}
           />
@@ -368,7 +291,7 @@ export default function InboxPage() {
 
         {/* Center Pane - Chat View (45%) */}
         <div className="flex-1 bg-white border-r border-gray-100 flex flex-col">
-          <ChatPanel 
+          <ChatPanel
             conversation={selectedConversation}
             onToggleProfile={() => setIsProfileVisible(!isProfileVisible)}
             onSendMessage={handleSendMessage}
@@ -385,8 +308,8 @@ export default function InboxPage() {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="bg-white flex flex-col"
             >
-              <ProfilePanel 
-                contact={selectedConversation?.contact}
+              <ProfilePanel
+                contact={selectedConversation?.lead}
                 onClose={() => setIsProfileVisible(false)}
               />
             </motion.div>

@@ -28,7 +28,7 @@ interface Conversation {
 }
 
 interface ConversationListItemProps {
-  conversation: Conversation;
+  conversation: any;
   isSelected: boolean;
   onClick: () => void;
 }
@@ -91,8 +91,8 @@ export default function ConversationListItem({
         <div className="relative flex-shrink-0">
           <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
             <img 
-              src={conversation.contact.avatar} 
-              alt={conversation.contact.name}
+              src={"/avatars/default-avatar.jpg"} 
+              alt={(conversation as any)?.lead?.first_name}
               className="w-full h-full object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -102,7 +102,7 @@ export default function ConversationListItem({
               }}
             />
             <div className="w-full h-full bg-gradient-to-r from-orange-500 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm" style={{ display: 'none' }}>
-              {conversation.contact.name.split(' ').map(n => n[0]).join('')}
+              {/* {conversation.contact.name.split(' ').map(n => n[0]).join('')} */}
             </div>
           </div>
           {/* Online indicator */}
@@ -114,37 +114,37 @@ export default function ConversationListItem({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900 truncate">
-                {conversation.contact.name}
+                {(conversation as any)?.lead?.first_name}
               </h3>
-              {conversation.contact.verified && (
+              {/* {conversation.contact.verified && (
                 <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-              )}
-              {getChannelIcon(conversation.channel)}
+              )} */}
+              {/* {getChannelIcon(conversation.channel)} */}
             </div>
             <span className="text-xs text-gray-500 flex-shrink-0">
-              {formatTime(conversation.lastMessage.timestamp)}
+              {/* {formatTime(conversation.lastMessage.timestamp)} */}
             </span>
           </div>
           
           <p className="text-sm text-gray-600 truncate mb-1">
-            {conversation.contact.title} at {conversation.contact.company}
+            {conversation.lead.job} at {conversation.lead.company_name}
           </p>
           
           <p className="text-xs text-gray-400 truncate">
-            {conversation.contact.campaign}
+            {/* {conversation.contact.campaign} */}
           </p>
         </div>
 
         {/* Unread count badge */}
-        {conversation.unreadCount > 0 && (
+        {/* {conversation.unreadCount > 0 && (
           <div className="flex-shrink-0">
             <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full min-w-[20px] text-center">
               {conversation.unreadCount}
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </motion.div>
   );
