@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Loader2, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { X, Mail, Settings, Loader2, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { identityService } from '../../services/identityService';
-import { EMAIL_PROVIDERS } from '../../types/identity.types';
 
 interface SmtpPopupProps {
     identityId: string;
@@ -16,8 +15,9 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [selectedProvider, setSelectedProvider] = useState(EMAIL_PROVIDERS[0]);
-    const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+    const [fieldsVisible, setFieldsVisible] = useState(false);
+    const [passwordsVisible, setPasswordsVisible] = useState(false);
+
     const [credentials, setCredentials] = useState({
         email: '',
         password: '',
@@ -35,8 +35,8 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
-        
+        const { name, value, type } = e.target;
+
         if (name.startsWith('smtp_') || name.startsWith('imap_')) {
             const [section, field] = name.split('_');
             if (section === 'smtp') {
@@ -44,7 +44,7 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
                     ...prev,
                     smtp: {
                         ...prev.smtp,
-                        [field]: type === 'checkbox' ? checked : value
+                        [field]: field === 'port' ? parseInt(value) || 587 : value
                     }
                 }));
             } else if (section === 'imap') {
@@ -52,73 +52,31 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
                     ...prev,
                     imap: {
                         ...prev.imap,
-                        [field]: type === 'checkbox' ? checked : value
+                        [field]: field === 'port' ? parseInt(value) || 993 : value
                     }
                 }));
             }
         } else {
             setCredentials(prev => ({
                 ...prev,
-                [name]: type === 'checkbox' ? checked : value
+                [name]: value
             }));
         }
     };
 
-    const handleProviderSelect = (provider: typeof EMAIL_PROVIDERS[0]) => {
-        setSelectedProvider(provider);
-        setShowProviderDropdown(false);
-        
-        // Set default SMTP settings based on provider
-        if (provider.type === 'GMAIL') {
-            setCredentials(prev => ({
-                ...prev,
-                smtp: {
-                    ...prev.smtp,
-                    host: 'smtp.gmail.com',
-                    port: 587
-                },
-                imap: {
-                    ...prev.imap,
-                    host: 'imap.gmail.com',
-                    port: 993
-                }
-            }));
-        } else if (provider.type === 'OUTLOOK') {
-            setCredentials(prev => ({
-                ...prev,
-                smtp: {
-                    ...prev.smtp,
-                    host: 'smtp-mail.outlook.com',
-                    port: 587
-                },
-                imap: {
-                    ...prev.imap,
-                    host: 'outlook.office365.com',
-                    port: 993
-                }
-            }));
-        } else {
-            setCredentials(prev => ({
-                ...prev,
-                smtp: {
-                    ...prev.smtp,
-                    host: '',
-                    port: 587
-                },
-                imap: {
-                    ...prev.imap,
-                    host: '',
-                    port: 993
-                }
-            }));
-        }
+    const toggleFields = () => {
+        setFieldsVisible(prev => !prev);
+    };
+
+    const togglePasswords = () => {
+        setPasswordsVisible(prev => !prev);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (!credentials.email || !credentials.password || !credentials.smtp.host || !credentials.imap.host) {
-            setError('Please fill in all required fields');
+
+        if (!credentials.email || !credentials.password) {
+            setError('Please fill in email and password');
             return;
         }
 
@@ -126,29 +84,42 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
             setIsLoading(true);
             setError(null);
 
-            const response = await (identityService as any).saveSmtpCredentials({
+            const requestData = {
                 identity_id: identityId,
-                data: credentials,
-                type: 'SMTP/IMAP'
-            });
+                data: {
+                    email: credentials.email,
+                    password: credentials.password,
+                    sender_full_name: credentials.sender_full_name,
+                    smtp: {
+                        host: credentials.smtp.host,
+                        password: credentials.smtp.password || credentials.password,
+                        port: parseInt(credentials.smtp.port.toString()),
+                    },
+                    imap: {
+                        host: credentials.imap.host,
+                        password: credentials.imap.password || credentials.password,
+                        port: parseInt(credentials.imap.port.toString()),
+                    },
+                },
+                type: "SMTP/IMAP",
+            };
 
-            if (response.success || response.message) {
-                setSuccess(true);
-                setTimeout(() => {
-                    onSuccess();
-                    onClose();
-                }, 1500);
-            } else {
-                setError(response.message || 'Failed to connect email account');
-            }
+            console.log("requestData:", requestData);
+            const response = await identityService.connectLinkedIn(requestData);
+            console.log("API Success:", response);
+
+            setSuccess(true);
+            setTimeout(() => {
+                onSuccess();
+                onClose();
+            }, 1500);
         } catch (err: any) {
             console.error('SMTP connection error:', err);
-            
-            // Enhanced error handling with user-friendly messages
-            let errorMessage = 'Failed to connect email account';
+
+            let errorMessage = 'SMTP connection failed';
             if (err.response?.data?.message) {
                 errorMessage = err.response.data.message;
-                
+
                 // User-friendly error message mapping
                 if (errorMessage.includes('Invalid login')) {
                     errorMessage = 'Invalid email or password. Please check your credentials.';
@@ -158,39 +129,26 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
                     errorMessage = 'Connection timeout. Please check your SMTP settings and try again.';
                 } else if (errorMessage.includes('Authentication failed')) {
                     errorMessage = 'Authentication failed. Please check your email and password.';
-                } else if (errorMessage.includes('SMTP connection test failed')) {
-                    errorMessage = 'SMTP connection test failed. Please check your server settings.';
                 }
             }
-            
+
             setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleOAuthConnect = () => {
-        // Store identity ID for OAuth callback
-        localStorage.setItem('google_identity_id', identityId);
-        
-        // Redirect to Google OAuth for Gmail
-        if (selectedProvider.type === 'GMAIL') {
-            const googleOAuthUrl = `https://accounts.google.com/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=${encodeURIComponent(window.location.origin + '/identities')}&scope=email&response_type=code&state=gmail`;
-            window.location.href = googleOAuthUrl;
-        }
-    };
-
     return (
         <AnimatePresence>
-            <motion.div 
+            <motion.div
                 className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
             >
-                <motion.div 
-                    className="bg-white w-full max-w-md rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto"
+                <motion.div
+                    className="bg-white w-full max-w-4xl rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto"
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
@@ -198,21 +156,15 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
                 >
                     {/* Header */}
                     <div className="p-6 border-b border-gray-200 relative">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                <Mail size={20} className="text-red-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Connect Email</h2>
-                                <p className="text-sm text-gray-500">Set up email credentials for campaigns</p>
-                            </div>
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-semibold text-gray-900">Email connection</h2>
+                            <button
+                                onClick={onClose}
+                                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <X size={20} className="text-gray-500" />
+                            </button>
                         </div>
-                        <button 
-                            onClick={onClose}
-                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
-                        >
-                            <X size={20} className="text-gray-500" />
-                        </button>
                     </div>
 
                     {/* Content */}
@@ -227,211 +179,222 @@ export default function SmtpPopup({ identityId, onClose, onSuccess }: SmtpPopupP
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                {/* Provider Selection */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Email Provider *
-                                    </label>
-                                    <div className="relative">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowProviderDropdown(!showProviderDropdown)}
-                                            className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-lg">{selectedProvider.icon}</span>
-                                                <span className="font-medium">{selectedProvider.name}</span>
-                                            </div>
-                                            <ChevronDown size={20} className="text-gray-400" />
-                                        </button>
+                                {/* Basic Email/Password Section */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                                            <input
+                                                name="email"
+                                                type="email"
+                                                value={credentials.email}
+                                                onChange={handleInputChange}
+                                                placeholder="your.email@company.com"
+                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                            <input
+                                                name="password"
+                                                type="password"
+                                                value={credentials.password}
+                                                onChange={handleInputChange}
+                                                placeholder="Enter your email password"
+                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            />
+                                        </div>
+                                    </div>
 
-                                        <AnimatePresence>
-                                            {showProviderDropdown && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: -10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -10 }}
-                                                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10"
-                                                >
-                                                    {EMAIL_PROVIDERS.map((provider) => (
-                                                        <button
-                                                            key={provider.id}
-                                                            onClick={() => handleProviderSelect(provider)}
-                                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
-                                                        >
-                                                            <span className="text-lg">{provider.icon}</span>
-                                                            <span className="font-medium">{provider.name}</span>
-                                                        </button>
-                                                    ))}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                    {/* Automatic Setup Button */}
+                                    <div className="flex justify-end">
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                                            <Settings size={16} />
+                                            Automatic setup
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* OAuth Option for Gmail */}
-                                {selectedProvider.type === 'GMAIL' && (
-                                    <div className="text-center">
-                                        <button
-                                            onClick={handleOAuthConnect}
-                                            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
-                                        >
-                                            <Mail size={20} />
-                                            Connect with Google OAuth (Recommended)
-                                        </button>
-                                        <p className="text-xs text-gray-500 mt-2">Secure and fast connection</p>
+                                {/* SMTP/IMAP Setup Section */}
+                                <div className="border border-gray-200 rounded-xl">
+                                    <div
+                                        className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                        onClick={toggleFields}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <ChevronDown
+                                                size={20}
+                                                className={`text-gray-500 transition-transform ${fieldsVisible ? 'rotate-90' : ''}`}
+                                            />
+                                            <span className="font-medium text-gray-900">SMTP / IMAP Setup</span>
+                                        </div>
+                                    </div>
+
+                                    {fieldsVisible && (
+                                        <div className="px-4 pb-4 border-t border-gray-200">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                                                {/* IMAP Column */}
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">Sender Fullname</label>
+                                                        <input
+                                                            name="sender_full_name"
+                                                            type="text"
+                                                            value={credentials.sender_full_name}
+                                                            onChange={handleInputChange}
+                                                            placeholder="Your Full Name"
+                                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Receiving server</span>
+                                                        <button className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">
+                                                            Check
+                                                        </button>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">IMAP Host</label>
+                                                        <input
+                                                            name="imap_host"
+                                                            type="text"
+                                                            value={credentials.imap.host}
+                                                            onChange={handleInputChange}
+                                                            placeholder="imap.gmail.com"
+                                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                            IMAP port - <span className="text-gray-500 italic">Optional</span>
+                                                        </label>
+                                                        <input
+                                                            name="imap_port"
+                                                            type="number"
+                                                            value={credentials.imap.port}
+                                                            onChange={handleInputChange}
+                                                            placeholder="993"
+                                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    {passwordsVisible && (
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                                            <input
+                                                                name="imap_password"
+                                                                type="password"
+                                                                value={credentials.imap.password}
+                                                                onChange={handleInputChange}
+                                                                placeholder="IMAP Password"
+                                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* SMTP Column */}
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={passwordsVisible}
+                                                                onChange={togglePasswords}
+                                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                            />
+                                                            <span className="text-sm text-gray-700">Different passwords for IMAP/SMTP</span>
+                                                        </label>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-gray-700">Sending server</span>
+                                                        <button className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors">
+                                                            Check
+                                                        </button>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Host</label>
+                                                        <input
+                                                            name="smtp_host"
+                                                            type="text"
+                                                            value={credentials.smtp.host}
+                                                            onChange={handleInputChange}
+                                                            placeholder="smtp.gmail.com"
+                                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                            SMTP port - <span className="text-gray-500 italic">Optional</span>
+                                                        </label>
+                                                        <input
+                                                            name="smtp_port"
+                                                            type="number"
+                                                            value={credentials.smtp.port}
+                                                            onChange={handleInputChange}
+                                                            placeholder="587"
+                                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    {passwordsVisible && (
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                                            <input
+                                                                name="smtp_password"
+                                                                type="password"
+                                                                value={credentials.smtp.password}
+                                                                onChange={handleInputChange}
+                                                                placeholder="SMTP Password"
+                                                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {error && (
+                                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                        <AlertCircle size={16} className="text-red-500" />
+                                        <span className="text-sm text-red-700">{error}</span>
                                     </div>
                                 )}
 
-                                {(selectedProvider.type === 'GMAIL' || selectedProvider.type === 'OUTLOOK' || selectedProvider.type === 'CUSTOM') && (
-                                    <>
-                                        <div className="relative">
-                                            <div className="absolute inset-0 flex items-center">
-                                                <div className="w-full border-t border-gray-300" />
-                                            </div>
-                                            <div className="relative flex justify-center text-sm">
-                                                <span className="px-2 bg-white text-gray-500">or</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Manual Credentials */}
-                                        <form onSubmit={handleSubmit} className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Email Address *
-                                                </label>
-                                                <input
-                                                    name="email"
-                                                    type="email"
-                                                    value={credentials.email}
-                                                    onChange={handleInputChange}
-                                                    placeholder="your.email@company.com"
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Password *
-                                                </label>
-                                                <input
-                                                    name="password"
-                                                    type="password"
-                                                    value={credentials.password}
-                                                    onChange={handleInputChange}
-                                                    placeholder="Enter your email password"
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Sender Full Name *
-                                                </label>
-                                                <input
-                                                    name="sender_full_name"
-                                                    type="text"
-                                                    value={credentials.sender_full_name}
-                                                    onChange={handleInputChange}
-                                                    placeholder="Your Full Name"
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    SMTP Host *
-                                                </label>
-                                                <input
-                                                    name="smtp_host"
-                                                    type="text"
-                                                    value={credentials.smtp.host}
-                                                    onChange={handleInputChange}
-                                                    placeholder="smtp.gmail.com"
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    SMTP Port *
-                                                </label>
-                                                <input
-                                                    name="smtp_port"
-                                                    type="number"
-                                                    value={credentials.smtp.port}
-                                                    onChange={handleInputChange}
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    IMAP Host *
-                                                </label>
-                                                <input
-                                                    name="imap_host"
-                                                    type="text"
-                                                    value={credentials.imap.host}
-                                                    onChange={handleInputChange}
-                                                    placeholder="imap.gmail.com"
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    IMAP Port *
-                                                </label>
-                                                <input
-                                                    name="imap_port"
-                                                    type="number"
-                                                    value={credentials.imap.port}
-                                                    onChange={handleInputChange}
-                                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                                    required
-                                                />
-                                            </div>
-
-                                            {error && (
-                                                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                                    <AlertCircle size={16} className="text-red-500" />
-                                                    <span className="text-sm text-red-700">{error}</span>
-                                                </div>
+                                {/* Footer Actions */}
+                                <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={isLoading}
+                                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isLoading ? (
+                                                <>
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                'Save settings'
                                             )}
-
-                                            <div className="flex gap-3 pt-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={onClose}
-                                                    className="flex-1 px-4 py-3 text-gray-700 font-semibold bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    disabled={isLoading}
-                                                    className="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                                                >
-                                                    {isLoading ? (
-                                                        <>
-                                                            <Loader2 size={16} className="animate-spin" />
-                                                            Connecting...
-                                                        </>
-                                                    ) : (
-                                                        'Connect'
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </>
-                                )}
+                                        </button>
+                                        <div className="flex items-center gap-1 text-sm text-gray-600 cursor-pointer hover:text-gray-800">
+                                            <span>Email Sending limits</span>
+                                            <AlertCircle size={14} />
+                                        </div>
+                                    </div>
+                                    <button className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-800 transition-colors">
+                                        <X size={16} />
+                                        <span>Remove Email Connection</span>
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
