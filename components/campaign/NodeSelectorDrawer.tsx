@@ -71,9 +71,9 @@ const stepNodes: NodeItem[] = [
     type: 'action'
   },
   {
-    id: 'action_call',
-    title: 'Call',
-    subtitle: 'Create task',
+    id: 'action_ai_voice_call',
+    title: 'Ai Voice call',
+    subtitle: 'Ai Voice call',
     icon: Phone,
     type: 'action'
   },
