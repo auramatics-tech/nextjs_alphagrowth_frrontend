@@ -91,7 +91,7 @@ export const identityService = {
   /**
    * Create a new identity
    */
-  createIdentity: async (data: CreateIdentityRequest): Promise<Identity> => {
+  createIdentity: async (data: any): Promise<Identity> => {
     try {
       const response = await apiClient.post('/pub/v1/identities/create', data);
       return response.data;

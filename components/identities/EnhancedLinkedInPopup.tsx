@@ -36,7 +36,7 @@ export default function EnhancedLinkedInPopup({ identityId, onClose, onSuccess }
         reset();
     }, [reset]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: any) => {
         setCredentials(prev => ({
             ...prev,
             [e.target.name]: e.target.value
@@ -215,7 +215,9 @@ export default function EnhancedLinkedInPopup({ identityId, onClose, onSuccess }
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         <div className="flex items-center gap-2">
                                             <span>Location *</span>
-                                            <Info size={16} className="text-gray-400 cursor-help" title="The identity will automate LinkedIn actions in the specified country, and use the Limits & Hours already set in the identity section" />
+                                            <Info size={16} className="text-gray-400 cursor-help" 
+                                            // title="The identity will automate LinkedIn actions in the specified country, and use the Limits & Hours already set in the identity section"
+                                             />
                                         </div>
                                     </label>
                                     <select

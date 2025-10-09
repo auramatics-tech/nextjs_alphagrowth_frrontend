@@ -35,7 +35,7 @@ export default function IdentityManagementPage() {
     const searchParams = useSearchParams();
     const identityId = params.identityId as string;
 
-    const [identity, setIdentity] = useState<Identity | null>(null);
+    const [identity, setIdentity] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export default function IdentityManagementPage() {
             try {
                 setIsLoading(true);
                 const identities = await identityService.getIdentities();
-                const foundIdentity = identities.find(id => id.id === identityId);
+                const foundIdentity:any = identities.find(id => id.id === identityId);
                 
                 if (foundIdentity) {
                     setIdentity(foundIdentity);
@@ -155,7 +155,7 @@ export default function IdentityManagementPage() {
             }
         } catch (error) {
             console.error('Error loading action limits:', error);
-            toast.error('Failed to load action limits');
+            // toast.error('Failed to load action limits');
         } finally {
             setLoadingLimits(false);
         }
