@@ -6,7 +6,7 @@ import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 
- 
+
 
 interface ChatPanelProps {
   conversation: any | null;
@@ -26,10 +26,7 @@ export default function ChatPanel({ conversation, onToggleProfile, onSendMessage
     scrollToBottom();
   }, [conversation?.messages]);
 
-    useEffect(()=>{
-console.log("conversation----",conversation);
 
-  },[conversation])
 
   if (!conversation) {
     return (
@@ -47,17 +44,16 @@ console.log("conversation----",conversation);
     );
   }
 
+  // Group messages by date (using raw message format)
   const groupedMessages = conversation?.messages?.reduce((groups: any, message: any) => {
-    console.log('Processing message for grouping:', message);
-    const date = new Date(message?.timestamp || message?.created_at)?.toDateString();
-    console.log('Message date:', date);
+    const date = new Date(message.created_at).toDateString();
     if (!groups[date]) {
       groups[date] = [];
     }
     groups[date].push(message);
     return groups;
   }, {});
-  
+
   console.log('Final grouped messages:', groupedMessages);
 
 
@@ -66,14 +62,14 @@ console.log("conversation----",conversation);
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <ChatHeader 
+      <ChatHeader
         contact={conversation.lead}
         onToggleProfile={onToggleProfile}
       />
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {groupedMessages &&   Object.keys(groupedMessages).length === 0 ? (
+        {groupedMessages && Object.keys(groupedMessages).length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -87,47 +83,48 @@ console.log("conversation----",conversation);
           </div>
         ) : (groupedMessages &&
           Object.entries(groupedMessages).map(([date, messages]: [string, any]) => (
-          <div key={date}>
-            {/* Date Separator */}
-            <div className="flex items-center justify-center my-8">
-              <div className="bg-gray-50 px-4 py-2 rounded-full border border-gray-200">
-                <span className="text-xs font-medium text-gray-500">
-                  {new Date(date).toLocaleDateString([], { 
-                    weekday: 'short', 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  })}
-                </span>
+            <div key={date}>
+              {/* Date Separator */}
+              <div className="flex items-center justify-center my-8">
+                <div className="bg-gray-50 px-4 py-2 rounded-full border border-gray-200">
+                  <span className="text-xs font-medium text-gray-500">
+                    {new Date(date).toLocaleDateString([], {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Messages for this date */}
+              <div className="space-y-4">
+                {messages.map((message: any, index: number) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <MessageBubble message={message} />
+                  </motion.div>
+                ))}
               </div>
             </div>
-
-            {/* Messages for this date */}
-            <div className="space-y-4">
-              {messages.map((message: any, index: number) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <MessageBubble message={message} />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        ))
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
-      <MessageInput 
+      <MessageInput
         selectedChannel={selectedChannel}
         onChannelChange={setSelectedChannel}
         onSendMessage={(content, subject) => {
           if (onSendMessage && conversation) {
-            onSendMessage(conversation.id, content, selectedChannel, subject);
+            // Use lead.id for sending messages
+            onSendMessage(conversation.lead.id, content, selectedChannel, subject);
           }
         }}
       />

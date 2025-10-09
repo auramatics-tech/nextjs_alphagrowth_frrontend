@@ -21,7 +21,6 @@ export default function InboxPage() {
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [isProfileVisible, setIsProfileVisible] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [identities, setIdentities] = useState<Identity[]>([]);
   const [selectedIdentity, setSelectedIdentity] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,20 +30,9 @@ export default function InboxPage() {
       setLoading(true);
 
       const response = await inboxService.getAllLeads();
-
-
-
-
-
       if (response.data.length > 0) {
-
-
-
         setConversations(response.data);
-
-
         setSelectedConversation(response.data[0]);
-
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -53,134 +41,45 @@ export default function InboxPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedIdentity]);
+  }, []);
 
 
 
   // Load conversations when identity is selected
-  useEffect(() => {
 
-    loadConversations();
-
-  }, [selectedIdentity, loadConversations]);
 
 
 
   const handleConversationSelect = async (conversation: any) => {
-
-
     try {
-      // Make fresh API call to get messages (like frontend_old)
-      console.log("conversation0000----=", conversation);
+     
 
-      const inboxResponse = await inboxService.getInboxMessages(conversation?.lead?.id, conversation.identity_id);
+      // Fetch messages from API
+      const inboxResponse = await inboxService.getInboxMessages(
+        conversation?.lead?.id,
+        conversation.identity_id
+      );
 
       const messages: InboxMessage[] = inboxResponse.data || [];
+    
 
-console.log("messages------------------------",messages);
-
-      // Transform messages to conversation format
-      const transformedMessages = messages.map(msg => {
-
-        let content = 'System message';
-        let messageType = msg.type;
-        let recordingUrl = null;
-        let transcript = null;
-
-        if (msg.message) {
-          try {
-            const parsed = JSON.parse(msg.message);
-
-
-            // Handle voice call recordings
-            if (msg.type === 'voice_call_recording' && parsed && typeof parsed === 'object' && parsed.recordingUrl) {
-              content = 'Voice call recording';
-              recordingUrl = parsed.recordingUrl;
-              transcript = parsed.transcript;
-            }
-            // Handle AI voice messages
-            else if (msg.type === 'action_ai_voice_message' && parsed && typeof parsed === 'object' && parsed.attachmentFilePath) {
-              content = 'Audio message';
-              recordingUrl = parsed.attachmentFilePath;
-            }
-            // Handle email messages
-            else if (msg.type === 'action_send_email' || msg.type === 'inbox_email_message') {
-              if (parsed.subject && parsed.message) {
-                content = `Subject: ${parsed.subject}\n\n${parsed.message}`;
-              } else if (typeof parsed === 'string') {
-                content = parsed;
-              } else {
-                content = parsed.message || parsed.subject || 'Email message';
-              }
-            }
-            // Handle regular messages
-            else {
-              if (typeof parsed === 'string') {
-                content = parsed;
-              } else if (parsed.message && typeof parsed.message === 'string') {
-                content = parsed.message;
-              } else if (parsed.content && typeof parsed.content === 'string') {
-                content = parsed.content;
-              } else if (typeof parsed === 'object') {
-                // For other object types, show a descriptive message
-                content = `[${msg.type}] Message`;
-              } else {
-                content = msg.message;
-              }
-            }
-          } catch (e) {
-            console.log('Failed to parse message, using raw content:', msg.message);
-            content = msg.message;
-          }
-        }
-
-        // Define all types that come from the other user (like frontend_old)
-        const otherUserTypes = new Set(["reply_message"]);
-        const isFromUser = !otherUserTypes.has(msg.type);
-
-        return {
-          id: msg.id,
-          type: isFromUser ? 'outgoing' : 'incoming',
-          content: typeof content === 'string' ? content : String(content || 'System message'),
-          timestamp: msg.created_at || new Date().toISOString(),
-          sender: isFromUser ? 'user' : 'contact',
-          channel: msg.type?.includes('linkedin') ? 'linkedin' : 'email',
-          messageType: messageType,
-          recordingUrl: recordingUrl,
-          transcript: transcript
-        };
-      });
-
-      console.log("transformedMessages---", transformedMessages);
-
-
-      // Update the conversation with fresh messages
+      // Store raw messages directly - transformation will happen in UI
       const updatedConversation = {
         ...conversation,
-        messages: transformedMessages,
-        lastMessage: transformedMessages.length > 0 ? transformedMessages[transformedMessages.length - 1] : {
-          content: 'No messages yet',
-          timestamp: new Date().toISOString(),
-          type: 'system'
-        }
+        messages: messages  // 👈 Raw messages without transformation
       };
-
 
       setSelectedConversation(updatedConversation as any);
 
     } catch (error) {
       console.error('Error loading messages for conversation:', error);
-      // Still set the conversation even if message loading fails
       setSelectedConversation(conversation);
     }
   };
 
   const handleSendMessage = async (leadId: string, message: string, channel: 'linkedin' | 'email', subject?: string) => {
     try {
-      if (!selectedIdentity) {
-        toast.error('Please select an identity first');
-        return;
-      }
+    
 
       const messageData = {
         message,
@@ -201,7 +100,11 @@ console.log("messages------------------------",messages);
     }
   };
 
+  useEffect(() => {
 
+    loadConversations();
+
+  }, [ loadConversations]);
 
   if (loading) {
     return (
