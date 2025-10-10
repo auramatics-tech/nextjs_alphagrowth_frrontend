@@ -8,8 +8,8 @@ import { identityService } from '@/services/identityService';
 
 interface AddIdentityModalProps {
     onClose: () => void;
-   
-    loadIdentities:any
+
+    loadIdentities: any
 }
 
 export default function AddIdentityModal({ onClose, loadIdentities }: AddIdentityModalProps) {
@@ -39,35 +39,35 @@ export default function AddIdentityModal({ onClose, loadIdentities }: AddIdentit
         }
     };
 
-    const isFormValid = formData.name.trim() !== '' && 
-                       formData.company_name.trim() !== '' && 
-                       formData.email.trim() !== '';
+    const isFormValid = formData.name.trim() !== '' &&
+        formData.company_name.trim() !== '' &&
+        formData.email.trim() !== '';
 
-                        const handleAddIdentity = async (identityData: any) => {
+    const handleAddIdentity = async (identityData: any) => {
         try {
             const response = await identityService.createIdentity(identityData);
             if ((response as any).success) {
                 await loadIdentities();
                 onClose();
             } else {
-              
+                loadIdentities()
             }
         } catch (err: any) {
             console.error('Error creating identity:', err);
-      
+
         }
     };
 
     return (
         <AnimatePresence>
-            <motion.div 
+            <motion.div
                 className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
             >
-                <motion.div 
+                <motion.div
                     className="bg-white w-full max-w-lg rounded-2xl shadow-xl"
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -78,7 +78,7 @@ export default function AddIdentityModal({ onClose, loadIdentities }: AddIdentit
                     <div className="p-6 border-b border-gray-200 relative">
                         <h2 className="text-2xl font-semibold text-gray-900">Add Identity</h2>
                         <p className="text-sm text-gray-500 mt-1">Create a new sender profile for your campaigns.</p>
-                        <button 
+                        <button
                             onClick={onClose}
                             className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
                         >
@@ -148,14 +148,14 @@ export default function AddIdentityModal({ onClose, loadIdentities }: AddIdentit
                     {/* Footer */}
                     <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
                         <div className="flex justify-between items-center">
-                            <button 
+                            <button
                                 onClick={onClose}
                                 className="px-6 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
                             >
                                 Cancel
                             </button>
-                            
-                            <button 
+
+                            <button
                                 onClick={handleSubmit}
                                 disabled={!isFormValid || isSubmitting}
                                 className="px-6 py-2 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-95"

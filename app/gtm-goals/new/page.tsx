@@ -1,36 +1,136 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MainLayout from '../../../components/layout/MainLayout/MainLayout';
 import {
-  Target, Users, Briefcase, TrendingUp, Clock
+  Sparkles, PlusCircle, X, AlertTriangle
 } from 'lucide-react';
+import { businessService } from '../../../services/businessService';
+
+type Kpi = {
+  id: number;
+  goal: string;
+  count: number;
+};
+
+type Business = {
+  id: string;
+  companyName: string;
+  icps?: ICP[];
+};
+
+type ICP = {
+  id: string;
+  name: string;
+  title: string;
+};
+
+const KPI_OPTIONS = [
+  'Meetings Booked',
+  'Leads Generated',
+  'No. of Replies',
+  'Deals Won',
+  'Trials / Signup',
+  'Revenue Generated',
+  'Email Open Rate',
+  'Connection Request Accepted',
+  'Click-Through Rate (CTR) (%)',
+  'Custom Metric'
+];
 
 const CreateGTMGoal = () => {
+  const router = useRouter();
   const [goalData, setGoalData] = useState({
-    name: '',
-    mainObjective: '',
-    painPoint: '',
-    valueProposition: '',
-    targeting: '',
-    status: 'Planning',
-    duration: '',
-    linkedCampaigns: [] as string[],
+    gtmName: '',
+    mainObjectives: '',
+    keyCustomerPainPoint: '',
+    coreValueProposition: '',
+    gtmDuration: '',
   });
 
-  const [linkedCampaigns, setLinkedCampaigns] = useState('');
+  // New state for API integrations
+  const [kpis, setKpis] = useState<Kpi[]>([{ id: 1, goal: 'Meetings Booked', count: 1 }]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [allIcps, setAllIcps] = useState<ICP[]>([]);
+  const [selectedBusinessId, setSelectedBusinessId] = useState('');
+  const [selectedIcpId, setSelectedIcpId] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
+
+  // Fetch businesses and ICPs on mount
+  useEffect(() => {
+    const fetchBusinessesAndIcps = async () => {
+      try {
+        const win = typeof window !== 'undefined' ? window : undefined;
+        const businessId = win ? localStorage.getItem('businessId') : null;
+        
+        if (businessId) {
+          // Set default selected business if available
+          setSelectedBusinessId(businessId);
+        }
+
+        // Fetch all businesses and their ICPs
+        const data = await businessService.getBusinessInfo({ business_id: '' });
+        console.log('[GTM Goals] Fetched businesses:', data);
+        
+        if (data?.businesses && Array.isArray(data.businesses)) {
+          setBusinesses(data.businesses);
+          
+          // Flatten all ICPs from all businesses
+          const flattenedIcps = data.businesses.flatMap((b: Business) => b.icps || []);
+          setAllIcps(flattenedIcps);
+          
+          // If we have a default business ID, set the first ICP from that business
+          if (businessId) {
+            const defaultBusiness = data.businesses.find((b: Business) => b.id === businessId);
+            if (defaultBusiness?.icps && defaultBusiness.icps.length > 0) {
+              setSelectedIcpId(defaultBusiness.icps[0].id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[GTM Goals] Failed to fetch businesses:', err);
+        setError('Failed to load business information');
+      }
+    };
+
+    fetchBusinessesAndIcps();
+  }, []);
+
+  // KPI Management
+  const handleKpiChange = (id: number, field: 'goal' | 'count', value: string | number) => {
+    setKpis(currentKpis => 
+      currentKpis.map(kpi => 
+        kpi.id === id ? { ...kpi, [field]: field === 'count' ? Number(value) : value } : kpi
+      )
+    );
+  };
+
+  const addKpi = () => {
+    if (kpis.length < KPI_OPTIONS.length) {
+      const availableKpi = KPI_OPTIONS.find(opt => !kpis.some(k => k.goal === opt)) || 'Meetings Booked';
+      setKpis(currentKpis => [...currentKpis, { id: Date.now(), goal: availableKpi, count: 1 }]);
+    }
+  };
+
+  const removeKpi = (id: number) => {
+    if (kpis.length > 1) {
+      setKpis(currentKpis => currentKpis.filter(kpi => kpi.id !== id));
+    }
+  };
 
   // Check if required fields are filled for AI generation
   const canGenerateAI = () => {
-    return goalData.name.trim() !== '' && goalData.mainObjective.trim() !== '';
+    return goalData.gtmName.trim() !== '' && goalData.mainObjectives.trim() !== '';
   };
 
-  // AI Generation function
+  // AI Generation function - Now calls real API
   const handleGenerateAI = async () => {
     if (!canGenerateAI()) {
       alert('Please fill in Goal Name and Main Objective before generating with AI.');
@@ -39,142 +139,126 @@ const CreateGTMGoal = () => {
 
     setIsModalOpen(false);
     setIsGenerating(true);
+    setError(null);
 
-    // Simulate a 3 second API call
-    setTimeout(() => {
-      // Generate AI content based on existing Goal Name and Main Objective
-      const enhancedData = {
-        ...goalData, // Keep existing name and mainObjective
-        painPoint: generatePainPoint(goalData.name, goalData.mainObjective),
-        valueProposition: generateValueProposition(goalData.name, goalData.mainObjective),
-        targeting: generateTargeting(goalData.name, goalData.mainObjective),
-        duration: generateDuration(goalData.name, goalData.mainObjective),
-        linkedCampaigns: generateLinkedCampaigns(goalData.name, goalData.mainObjective),
+    try {
+      const win = typeof window !== 'undefined' ? window : undefined;
+      let businessId = selectedBusinessId || (win ? localStorage.getItem('businessId') : null);
+      let icpId = selectedIcpId || (win ? localStorage.getItem('icpId') : null);
+
+      if (!businessId) {
+        throw new Error('Please select a business first');
+      }
+
+      // Auto-recover icpId if missing
+      if (!icpId && allIcps.length > 0) {
+        icpId = allIcps[0].id;
+        setSelectedIcpId(icpId);
+      }
+
+      if (!icpId) {
+        throw new Error('Please select or create an ICP first');
+      }
+
+      const response = await businessService.generateGtmPainPoints({
+        businessId,
+        icpId,
+        goal_title: goalData.gtmName,
+        target_segment: 'General Market',
+        channel_focus: 'LinkedIn'
+      });
+
+      console.log('[GTM Goals] AI generation response:', response);
+
+      const painPoint = response?.pain_point || response?.pain || response?.data?.pain_point || '';
+      const valueProp = response?.value_proposition || response?.valueProp || response?.data?.value_proposition || '';
+
+      if (painPoint || valueProp) {
+        setGoalData(prev => ({
+          ...prev,
+          keyCustomerPainPoint: painPoint || prev.keyCustomerPainPoint,
+          coreValueProposition: valueProp || prev.coreValueProposition
+        }));
+      }
+
+      setIsGenerating(false);
+    } catch (err: any) {
+      console.error('[GTM Goals] AI generation error:', err);
+      setError(err.message || 'Failed to generate AI content');
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const win = typeof window !== 'undefined' ? window : undefined;
+      const domain = win ? localStorage.getItem('businessDomain') : null;
+      
+      if (!selectedBusinessId) {
+        throw new Error('Please select a business');
+      }
+
+      if (!selectedIcpId) {
+        throw new Error('Please select an ICP');
+      }
+
+      if (!goalData.gtmName.trim()) {
+        throw new Error('Please enter a GTM name');
+      }
+
+      if (!goalData.mainObjectives.trim()) {
+        throw new Error('Please enter a main objective');
+      }
+
+      if (kpis.length === 0 || !kpis.every(kpi => kpi.goal && kpi.count > 0)) {
+        throw new Error('Please add at least one valid KPI');
+      }
+
+      // Format goals like frontend_old
+      const formattedGoals = kpis.map(kpi => ({
+        goal: kpi.goal,
+        count: kpi.count
+      }));
+
+      const gtmData = {
+        businessId: selectedBusinessId,
+        targetAudienceICPId: selectedIcpId,
+        domain: domain || '',
+        gtmName: goalData.gtmName,
+        mainObjectives: goalData.mainObjectives,
+        goals: JSON.stringify(formattedGoals),
+        keyCustomerPainPoint: goalData.keyCustomerPainPoint,
+        coreValueProposition: goalData.coreValueProposition,
+        gtmDuration: goalData.gtmDuration || '24',
       };
 
-      setGoalData(enhancedData);
-      setLinkedCampaigns(enhancedData.linkedCampaigns.join(', '));
-      setIsGenerating(false);
-    }, 3000);
-  };
+      console.log('[GTM Goals] Submitting data:', gtmData);
 
-  // Helper functions to generate contextual content based on goal name and objective
-  const generatePainPoint = (name: string, objective: string) => {
-    const lowerName = name.toLowerCase();
-    const lowerObjective = objective.toLowerCase();
-    
-    if (lowerName.includes('ai') || lowerName.includes('analytics') || lowerObjective.includes('data')) {
-      return 'Target organizations struggle with fragmented data systems, manual reporting processes, and lack of real-time insights. This leads to delayed decision-making, missed opportunities, and inefficient resource allocation costing companies millions annually.';
-    } else if (lowerName.includes('enterprise') || lowerName.includes('saas')) {
-      return 'Large enterprises face complex integration challenges, scalability issues with legacy systems, and difficulty in achieving consistent user adoption across departments. This results in low ROI on technology investments and operational inefficiencies.';
-    } else if (lowerName.includes('security') || lowerName.includes('compliance')) {
-      return 'Organizations are overwhelmed with increasing cyber threats, complex compliance requirements, and fragmented security tools. This creates security gaps, regulatory risks, and operational overhead that impact business continuity.';
+      const response = await businessService.createGtmGoal(gtmData);
+      console.log('[GTM Goals] Save response:', response);
+
+      if (response?.message === "GTM strategy created successfully" || response?.success) {
+        // Navigate back to GTM goals list or to campaign setup
+        const campaignId = response?.campaign?.id;
+        if (campaignId) {
+          router.push(`/campaigns/${campaignId}/new/workflow`);
+        } else {
+          router.push('/gtm-goals');
+        }
     } else {
-      return 'Target customers face operational inefficiencies, outdated processes, and lack of integrated solutions. This leads to increased costs, reduced productivity, and competitive disadvantages in their respective markets.';
+        throw new Error(response?.message || 'Failed to create GTM goal');
+      }
+    } catch (err: any) {
+      console.error('[GTM Goals] Submit error:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to save GTM goal');
+      setIsSubmitting(false);
     }
   };
 
-  const generateValueProposition = (name: string, objective: string) => {
-    const lowerName = name.toLowerCase();
-    const lowerObjective = objective.toLowerCase();
-    
-    if (lowerName.includes('ai') || lowerName.includes('analytics') || lowerObjective.includes('data')) {
-      return 'Our AI-powered solution provides real-time, automated insights from complex datasets, reducing time-to-insight by 80% and enabling data-driven decision making. Features include predictive analytics, natural language queries, and automated report generation.';
-    } else if (lowerName.includes('enterprise') || lowerName.includes('saas')) {
-      return 'Our enterprise-grade platform offers seamless integration, scalable architecture, and comprehensive user training. This results in 90% faster implementation, 60% cost reduction, and 95% user adoption rates across all departments.';
-    } else if (lowerName.includes('security') || lowerName.includes('compliance')) {
-      return 'Our integrated security platform provides end-to-end protection with automated compliance reporting, reducing security incidents by 90% and compliance costs by 60% while ensuring continuous business operations.';
-    } else {
-      return 'Our comprehensive solution streamlines operations, integrates seamlessly with existing systems, and provides measurable ROI. This results in 50% efficiency gains, 40% cost reduction, and improved competitive positioning.';
-    }
-  };
-
-  const generateTargeting = (name: string, objective: string) => {
-    const lowerName = name.toLowerCase();
-    const lowerObjective = objective.toLowerCase();
-    
-    if (lowerName.includes('enterprise') || lowerObjective.includes('fortune 500')) {
-      return 'Fortune 500 enterprises, Large multinational corporations (10,000+ employees), Government organizations, Healthcare systems, Financial services institutions';
-    } else if (lowerName.includes('mid-market') || lowerName.includes('saas')) {
-      return 'Mid-market SaaS companies (500-5000 employees), Growing technology companies, Professional services firms, E-commerce platforms, Software development companies';
-    } else if (lowerName.includes('healthcare') || lowerObjective.includes('healthcare')) {
-      return 'Healthcare systems, Hospital networks, Medical device companies, Pharmaceutical organizations, Telehealth platforms, Healthcare IT companies';
-    } else {
-      return 'Mid-market companies (100-1000 employees), Growing businesses, Technology-forward organizations, Service-based companies, Product companies';
-    }
-  };
-
-  const generateDuration = (name: string, objective: string) => {
-    const lowerObjective = objective.toLowerCase();
-    
-    if (lowerObjective.includes('12 months') || lowerObjective.includes('year')) {
-      return '52';
-    } else if (lowerObjective.includes('6 months') || lowerObjective.includes('quarter')) {
-      return '24';
-    } else if (lowerObjective.includes('3 months')) {
-      return '12';
-    } else {
-      return '24'; // Default to 24 weeks (6 months)
-    }
-  };
-
-  const generateLinkedCampaigns = (name: string, objective: string) => {
-    const lowerName = name.toLowerCase();
-    const lowerObjective = objective.toLowerCase();
-    
-    if (lowerName.includes('enterprise') || lowerObjective.includes('fortune 500')) {
-      return ['Enterprise Outreach Q4', 'C-Level Executive Summit', 'Fortune 500 Direct Mail', 'Enterprise Webinar Series'];
-    } else if (lowerName.includes('ai') || lowerName.includes('analytics')) {
-      return ['AI Analytics Webinar Series', 'Data-Driven Decision Making', 'AI Platform Demo Campaign', 'Analytics Thought Leadership'];
-    } else if (lowerName.includes('healthcare')) {
-      return ['Healthcare Innovation Summit', 'Medical Technology Showcase', 'Healthcare IT Webinar', 'HIPAA Compliance Series'];
-    } else {
-      return ['Market Expansion Campaign', 'Product Launch Initiative', 'Customer Success Program', 'Industry Leadership Series'];
-    }
-  };
-
-  // Helper function to render form fields
-  const renderFormField = (id: string, label: string, type: string = 'text', options?: string[], placeholder?: string) => (
-    <div className="form-field mb-6">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
-        {label}
-      </label>
-      {type === 'select' && options ? (
-        <select
-          id={id}
-          name={id}
-          value={goalData[id as keyof typeof goalData] || ''}
-          onChange={(e) => setGoalData({...goalData, [id]: e.target.value})}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="">Select {label.toLowerCase()}</option>
-          {options.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      ) : type === 'textarea' ? (
-        <textarea
-          id={id}
-          name={id}
-          value={goalData[id as keyof typeof goalData] || ''}
-          onChange={(e) => setGoalData({...goalData, [id]: e.target.value})}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows={4}
-          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
-        />
-      ) : (
-        <input
-          type={type}
-          id={id}
-          name={id}
-          value={goalData[id as keyof typeof goalData] || ''}
-          onChange={(e) => setGoalData({...goalData, [id]: e.target.value})}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
-        />
-      )}
-    </div>
-  );
 
   const headerActions = (
     <div className="flex items-center space-x-3">
@@ -183,8 +267,19 @@ const CreateGTMGoal = () => {
           Cancel
         </button>
       </Link>
-      <button className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-blue-500 rounded-lg hover:from-orange-600 hover:to-blue-600 transition-all duration-300">
-        Save Goal
+      <button 
+        onClick={handleSubmit}
+        disabled={isSubmitting}
+        className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-blue-500 rounded-lg hover:from-orange-600 hover:to-blue-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        {isSubmitting ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            Saving...
+          </>
+        ) : (
+          'Save Goal'
+        )}
       </button>
     </div>
   );
@@ -192,46 +287,6 @@ const CreateGTMGoal = () => {
 
   return (
     <MainLayout title="Create New GTM Goal" headerActions={headerActions}>
-      {/* AI Prompt Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 shadow-2xl">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Generate GTM Goal with AI</h3>
-            <p className="text-gray-600 mb-4">
-              Based on your Goal Name and Main Objective, our AI will generate a comprehensive strategy including pain points, value propositions, targeting, and campaign recommendations.
-            </p>
-            
-            {/* Show current goal context */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">Current Goal Context:</h4>
-              <p className="text-sm text-gray-700 mb-1"><strong>Goal Name:</strong> {goalData.name || 'Not specified'}</p>
-              <p className="text-sm text-gray-700"><strong>Main Objective:</strong> {goalData.mainObjective || 'Not specified'}</p>
-            </div>
-
-            <textarea
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="Optional: Add additional context or specific requirements for your GTM strategy..."
-              className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-            />
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleGenerateAI}
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
-              >
-                Generate
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Loading Overlay */}
       {isGenerating && (
         <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-40">
@@ -248,159 +303,223 @@ const CreateGTMGoal = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="flex flex-row w-full gap-8">
-          {/* Main Content Area - 70% */}
-          <div className="flex-grow w-3/5">
-            <div className="space-y-8">
-              {/* Goal Details Section */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <div className="flex items-center space-x-2 mb-6">
-                  <Target className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Goal Details</h2>
-                </div>
-                
-                {renderFormField('name', 'Goal Name', 'text', undefined, 'Enter a descriptive name for your GTM goal')}
-                
-                {renderFormField('mainObjective', 'Main Objective', 'textarea', undefined, 'Describe the primary objective and desired outcomes of this GTM goal. Be specific about targets, timelines, and success metrics.')}
-                
-                {/* AI Generation Button */}
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <button 
-                    onClick={() => {
-                      if (canGenerateAI()) {
-                        setIsModalOpen(true);
-                      } else {
-                        alert('Please fill in Goal Name and Main Objective before generating with AI.');
-                      }
-                    }}
-                    className={`w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 shadow-md hover:shadow-lg ${
-                      canGenerateAI() 
-                        ? 'text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' 
-                        : 'text-gray-400 bg-gray-100 cursor-not-allowed'
-                    }`}
-                    disabled={!canGenerateAI()}
-                  >
-                    ✨ Generate Strategy with AI
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    {canGenerateAI() 
-                      ? 'AI will generate pain points, value propositions, targeting, and campaigns based on your goal'
-                      : 'Fill in Goal Name and Main Objective to enable AI generation'
-                    }
-                  </p>
-                </div>
-              </div>
-
-              {/* Strategy Section */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <div className="flex items-center space-x-2 mb-6">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Strategy</h2>
-                </div>
-                
-                {renderFormField('painPoint', 'Pain Point', 'textarea', undefined, 'Describe the specific problem or challenge your target audience faces that this GTM goal addresses.')}
-                
-                {renderFormField('valueProposition', 'Value Proposition', 'textarea', undefined, 'Explain how your solution addresses the pain point and provides unique value to your target market.')}
-              </div>
-
-              {/* Execution Section */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <div className="flex items-center space-x-2 mb-6">
-                  <Briefcase className="w-5 h-5 text-purple-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Execution</h2>
-                </div>
-                
-                {renderFormField('targeting', 'Targeting', 'text', undefined, 'e.g., Mid-market SaaS companies, Fortune 500 enterprises, Healthcare systems')}
-                
-                {/* Linked Campaigns */}
-                <div className="form-field mb-6">
-                  <label htmlFor="linkedCampaigns" className="block text-sm font-medium text-gray-700 mb-2">
-                    Linked Campaigns (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="linkedCampaigns"
-                    name="linkedCampaigns"
-                    value={linkedCampaigns}
-                    onChange={(e) => setLinkedCampaigns(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter campaign names separated by commas"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Separate multiple campaigns with commas</p>
-                </div>
-              </div>
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="text-sm font-semibold text-red-800 mb-1">Error</h4>
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           </div>
+        )}
 
-          {/* Sidebar - 30% */}
-          <div className="w-2/5 flex-shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 sticky top-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <Users className="w-5 h-5 text-gray-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Goal Settings</h3>
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+            <div className="space-y-6">
+              {/* GTM Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  GTM Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="gtmName"
+                  value={goalData.gtmName}
+                  onChange={(e) => setGoalData({...goalData, gtmName: e.target.value})}
+                  placeholder="Q3 Demo Drive for FinTech"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
               </div>
 
-              <div className="space-y-6">
-                {/* Status */}
-                <div className="form-field">
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
+              {/* Main Objectives */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  My main objective is <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="mainObjectives"
+                  value={goalData.mainObjectives}
+                  onChange={(e) => setGoalData({...goalData, mainObjectives: e.target.value})}
+                  placeholder="Successfully launch our new analytics feature to small marketing agencies and generate 20 qualified demo requests within the next 90 days"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  required
+                />
+              </div>
+              {/* KPIs Section */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    How will you measure success for this goal? <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={goalData.status}
-                    onChange={(e) => setGoalData({...goalData, status: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="Planning">Planning</option>
-                    <option value="Active">Active</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Paused">Paused</option>
-                  </select>
+                  {kpis.length < KPI_OPTIONS.length && (
+                    <button
+                      type="button"
+                      onClick={addKpi}
+                      className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 font-medium bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      + Add
+                    </button>
+                  )}
                 </div>
-
-                {/* GTM Duration */}
-                <div className="form-field">
-                  <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
-                    <Clock className="w-4 h-4 inline mr-1" />
-                    GTM Duration
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      id="duration"
-                      name="duration"
-                      value={goalData.duration}
-                      onChange={(e) => setGoalData({...goalData, duration: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-16"
-                      placeholder="24"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <span className="text-gray-500 text-sm">Weeks</span>
+                
+                <div className="space-y-2">
+                  {kpis.map((kpi, index) => (
+                    <div key={kpi.id} className="flex gap-2 items-center">
+                      <select
+                        value={kpi.goal}
+                        onChange={(e) => handleKpiChange(kpi.id, 'goal', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        {KPI_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={kpi.count}
+                        onChange={(e) => handleKpiChange(kpi.id, 'count', e.target.value)}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Count"
+                      />
+                      {kpis.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeKpi(kpi.id)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <X size={18} />
+                        </button>
+                      )}
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Business Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Your Business <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="businessId"
+                  value={selectedBusinessId}
+                  onChange={(e) => setSelectedBusinessId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select business</option>
+                  {businesses.map((business) => (
+                    <option key={business.id} value={business.id}>
+                      {business.companyName.replace(/^https?:\/\//, '')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ICP Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Your ICP <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="targetAudienceICPId"
+                  value={selectedIcpId}
+                  onChange={(e) => setSelectedIcpId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select ICP</option>
+                  {allIcps.map((icp) => (
+                    <option key={icp.id} value={icp.id}>
+                      {icp.name} - {icp.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* AI Generation Button */}
+              <div className="pt-4 border-t border-gray-200">
+                <button 
+                  type="button"
+                  onClick={handleGenerateAI}
+                  disabled={!canGenerateAI() || isGenerating}
+                  className={`w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-300 inline-flex items-center justify-center gap-2 ${
+                    canGenerateAI() && !isGenerating
+                      ? 'text-white bg-gradient-to-r from-orange-500 to-blue-500 hover:from-orange-600 hover:to-blue-600 shadow-md hover:shadow-lg' 
+                      : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                  }`}
+                >
+                  <Sparkles size={16} />
+                  Generate Main Pain Point and Core value Proposition from AI
+                </button>
+              </div>
+
+              {/* Pain Point */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Key customer pain point we address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="keyCustomerPainPoint"
+                  value={goalData.keyCustomerPainPoint}
+                  onChange={(e) => setGoalData({...goalData, keyCustomerPainPoint: e.target.value})}
+                  placeholder="Difficulty managing compliance reporting"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  required
+                />
+              </div>
+
+              {/* Value Proposition */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Our core value proposition (1–2 sentences) <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="coreValueProposition"
+                  value={goalData.coreValueProposition}
+                  onChange={(e) => setGoalData({...goalData, coreValueProposition: e.target.value})}
+                  placeholder="We automate compliance reporting, saving teams hours and reducing risk."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  required
+                />
+              </div>
+
+              {/* GTM Duration */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Desired GTM Duration <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    name="gtmDuration"
+                    value={goalData.gtmDuration}
+                    onChange={(e) => setGoalData({...goalData, gtmDuration: e.target.value})}
+                    placeholder="Enter GTM Duration"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <div className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg flex items-center text-sm text-gray-600">
+                    in Weeks
                   </div>
                 </div>
+              </div>
 
-
-
-                {/* Quick Stats */}
-                <div className="border-t border-gray-200 pt-6">
-                  <h4 className="text-sm font-medium text-gray-900 mb-3">Quick Stats</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Campaigns Linked:</span>
-                      <span className="text-gray-900 font-medium">0</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Target Segments:</span>
-                      <span className="text-gray-900 font-medium">1</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <span className="text-blue-600 font-medium">{goalData.status}</span>
-                    </div>
-                  </div>
+              {/* AI Note */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 flex items-start gap-3">
+                <Sparkles size={20} className="text-purple-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-700">
+                    <strong className="text-purple-700">💡 AI Superpower:</strong> Providing the Pain Point and Value Prop here helps our AI generate much more relevant and effective outreach message suggestions for your campaigns later!
+                  </p>
                 </div>
               </div>
             </div>
