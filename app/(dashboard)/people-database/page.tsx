@@ -232,7 +232,8 @@ export default function PeopleDatabasePage() {
     if (Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : f) || currentPage > 1) {
       fetchPeople();
     }
-  }, [fetchPeople]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchPeople, currentPage, filters]);
 
   const handleSelectAll = () => {
     if (selectedRows.length === people.length) {
@@ -471,7 +472,8 @@ export default function PeopleDatabasePage() {
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [selectedRows, isAudienceModalOpen, isColumnMenuOpen, people]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRows, isAudienceModalOpen, isColumnMenuOpen, people, handleSelectAll, handleExportCSV]);
 
   const getPersonAvatar = (name: any) => {
     const initials = name.split(' ').map((n: any) => n[0]).join('').toUpperCase();

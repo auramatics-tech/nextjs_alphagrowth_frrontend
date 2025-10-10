@@ -182,7 +182,7 @@ const FilterDropdown = ({
               })
             ) : (
               <div className="text-center py-4 text-gray-500 text-sm">
-                No options found for "{searchTerm}"
+                No options found for &quot;{searchTerm}&quot;
               </div>
             )}
           </div>
