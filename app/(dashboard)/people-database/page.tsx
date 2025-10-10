@@ -1,464 +1,53 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Filter, 
-  Plus, 
-  Eye, 
-  EyeOff, 
-  Search, 
-  ChevronLeft, 
+import {
+  Filter,
+  Plus,
+  Eye,
+  EyeOff,
+  Search,
+  ChevronLeft,
   ChevronRight,
   MoreHorizontal,
   Mail,
   Phone,
   MapPin,
   Building,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
-import FilterSidebar from '../../../components/people/FilterSidebar';
-import AudienceSelectionModal from '../../../components/people/AudienceSelectionModal';
+import FilterSidebarSimple, { FILTER_CONFIGS } from '../../../components/people/FilterSidebarSimple';
+import ImportLeadsModal from '../../../components/people/ImportLeadsModal';
+import peopleService, { Person, PaginationData } from '../../../services/peopleService';
+import leadService from '../../../services/leadService';
+import { toast } from 'react-hot-toast';
 
-// Mock people data matching the design
-const mockPeople = [
-  {
-    id: '1',
-    profilePicture: 'https://placehold.co/32x32/FF7316/FFFFFF?text=YS',
-    firstName: 'Yadvinder',
-    lastName: 'Singh',
-    businessEmail: 'yadvinder.singh@morepen.com',
-    phone: '+91 98765 43210',
-    personalEmail: 'yadvinder.personal@gmail.com',
-    company: 'Morepen Laborator...',
-    companyLogo: 'https://placehold.co/24x24/3AA3FF/FFFFFF?text=M',
-    jobTitle: 'Assistant Manager',
-    location: 'India',
-    companySize: '1001-5000',
-    companyWebsite: 'http://www.morepen.com',
-    industry: 'Manufacturing',
-    linkedinUrl: 'https://linkedin.com/in/yadvinder-singh',
-    bio: 'Experienced professional in pharmaceutical manufacturing with expertise in quality control.',
-    gender: 'Male'
-  },
-  {
-    id: '2',
-    profilePicture: 'https://placehold.co/32x32/FF6B2C/FFFFFF?text=RK',
-    firstName: 'Dr Ravi',
-    lastName: 'Kumar',
-    businessEmail: 'ravi.kumar@sugunafoods.com',
-    phone: '+91 98765 43211',
-    personalEmail: 'ravi.personal@gmail.com',
-    company: 'Suguna Foods Priv...',
-    companyLogo: 'https://placehold.co/24x24/FF6B2C/FFFFFF?text=S',
-    jobTitle: 'Senior Manager',
-    location: 'India',
-    companySize: '5001-10000',
-    companyWebsite: 'https://sugunafoods.com/',
-    industry: 'Food & Beverage',
-    linkedinUrl: 'https://linkedin.com/in/dr-ravi-kumar',
-    bio: 'Senior management professional in food and beverage industry.',
-    gender: 'Male'
-  },
-  {
-    id: '3',
-    profilePicture: 'https://placehold.co/32x32/10B981/FFFFFF?text=SN',
-    firstName: 'Saloni',
-    lastName: 'Nathani',
-    businessEmail: 'saloni@dezinesquad.com',
-    phone: '+91 98765 43212',
-    personalEmail: 'saloni.personal@gmail.com',
-    company: 'dezinesquad',
-    companyLogo: 'https://placehold.co/24x24/10B981/FFFFFF?text=D',
-    jobTitle: 'Graphic Designer',
-    location: 'India',
-    companySize: '1-10',
-    companyWebsite: 'https://dezinesquad.com',
-    industry: 'Design',
-    linkedinUrl: 'https://linkedin.com/in/saloni-nathani',
-    bio: 'Creative graphic designer with expertise in branding and visual communication.',
-    gender: 'Female'
-  },
-  {
-    id: '4',
-    profilePicture: 'https://placehold.co/32x32/8B5CF6/FFFFFF?text=SP',
-    firstName: 'Smruti',
-    lastName: 'Panigrahi',
-    businessEmail: 'smruti.panigrahi@techmahindra.com',
-    phone: '+91 98765 43213',
-    personalEmail: 'smruti.personal@gmail.com',
-    company: 'Tech Mahindra',
-    companyLogo: 'https://placehold.co/24x24/8B5CF6/FFFFFF?text=T',
-    jobTitle: 'Sales Manager',
-    location: 'India',
-    companySize: '10001+',
-    companyWebsite: 'www.techmahindra.com',
-    industry: 'Technology',
-    linkedinUrl: 'https://linkedin.com/in/smruti-panigrahi',
-    bio: 'Sales professional with strong background in technology solutions.',
-    gender: 'Female'
-  },
-  {
-    id: '5',
-    profilePicture: 'https://placehold.co/32x32/F59E0B/FFFFFF?text=CR',
-    firstName: 'Chakravarthy',
-    lastName: 'Reddy',
-    businessEmail: 'chakravarthy@sattvagroup.in',
-    phone: '+91 98765 43214',
-    personalEmail: 'chakravarthy.personal@gmail.com',
-    company: 'Sattva Group',
-    companyLogo: 'https://placehold.co/24x24/F59E0B/FFFFFF?text=S',
-    jobTitle: 'Senior Engineer',
-    location: 'India',
-    companySize: '201-500',
-    companyWebsite: 'http://www.sattvagroup.in',
-    industry: 'Engineering',
-    linkedinUrl: 'https://linkedin.com/in/chakravarthy-reddy',
-    bio: 'Experienced engineer specializing in infrastructure and construction projects.',
-    gender: 'Male'
-  },
-  {
-    id: '6',
-    profilePicture: 'https://placehold.co/32x32/EF4444/FFFFFF?text=HM',
-    firstName: 'Hemu',
-    lastName: 'Marisetty',
-    businessEmail: 'hemu.marisetty@tcs.com',
-    phone: '+91 98765 43215',
-    personalEmail: 'hemu.personal@gmail.com',
-    company: 'TCS',
-    companyLogo: 'https://placehold.co/24x24/EF4444/FFFFFF?text=T',
-    jobTitle: 'Project Manager',
-    location: 'India',
-    companySize: '10001+',
-    companyWebsite: 'https://www.tcs.com/',
-    industry: 'IT Services',
-    linkedinUrl: 'https://linkedin.com/in/hemu-marisetty',
-    bio: 'Project management expert with focus on IT service delivery.',
-    gender: 'Male'
-  },
-  {
-    id: '7',
-    profilePicture: 'https://placehold.co/32x32/06B6D4/FFFFFF?text=NG',
-    firstName: 'Nisshant',
-    lastName: 'Goswami',
-    businessEmail: 'nisshant@cars24.com',
-    phone: '+91 98765 43216',
-    personalEmail: 'nisshant.personal@gmail.com',
-    company: 'CARS24',
-    companyLogo: 'https://placehold.co/24x24/06B6D4/FFFFFF?text=C',
-    jobTitle: 'Business Analyst',
-    location: 'India',
-    companySize: '5001-10000',
-    companyWebsite: 'https://www.cars24.com',
-    industry: 'Automotive',
-    linkedinUrl: 'https://linkedin.com/in/nisshant-goswami',
-    bio: 'Business analyst with expertise in automotive industry and data analytics.',
-    gender: 'Male'
-  },
-  {
-    id: '8',
-    profilePicture: 'https://placehold.co/32x32/84CC16/FFFFFF?text=MM',
-    firstName: 'Md',
-    lastName: 'Mustufa',
-    businessEmail: 'mustufa@mars.com',
-    phone: '+91 98765 43217',
-    personalEmail: 'mustufa.personal@gmail.com',
-    company: 'Mars',
-    companyLogo: 'https://placehold.co/24x24/84CC16/FFFFFF?text=M',
-    jobTitle: 'Operations Manager',
-    location: 'India',
-    companySize: '10001+',
-    companyWebsite: 'https://www.mars.com',
-    industry: 'Manufacturing',
-    linkedinUrl: 'https://linkedin.com/in/md-mustufa',
-    bio: 'Operations management professional with focus on manufacturing excellence.',
-    gender: 'Male'
-  },
-  {
-    id: '9',
-    profilePicture: 'https://placehold.co/32x32/DC2626/FFFFFF?text=SH',
-    firstName: 'Sourav',
-    lastName: 'Halder',
-    businessEmail: 'sourav.halder@mha.gov.in',
-    phone: '+91 98765 43218',
-    personalEmail: 'sourav.personal@gmail.com',
-    company: 'MHA',
-    companyLogo: 'https://placehold.co/24x24/DC2626/FFFFFF?text=M',
-    jobTitle: 'Administrative Officer',
-    location: 'India',
-    companySize: '10001+',
-    companyWebsite: 'http://www.mha.gov.in',
-    industry: 'Government',
-    linkedinUrl: 'https://linkedin.com/in/sourav-halder',
-    bio: 'Government administrative professional with expertise in public policy.',
-    gender: 'Male'
-  },
-  {
-    id: '10',
-    profilePicture: 'https://placehold.co/32x32/7C3AED/FFFFFF?text=RL',
-    firstName: 'Rahinur',
-    lastName: 'Lasker',
-    businessEmail: 'rahinur.lasker@cognizant.com',
-    phone: '+91 98765 43219',
-    personalEmail: 'rahinur.personal@gmail.com',
-    company: 'Cognizant',
-    companyLogo: 'https://placehold.co/24x24/7C3AED/FFFFFF?text=C',
-    jobTitle: 'Software Developer',
-    location: 'India',
-    companySize: '10001+',
-    companyWebsite: 'https://www.cognizant.com',
-    industry: 'Professional Services',
-    linkedinUrl: 'https://linkedin.com/in/rahinur-lasker',
-    bio: 'Full-stack developer with expertise in modern web technologies.',
-    gender: 'Male'
-  },
-  {
-    id: '11',
-    profilePicture: 'https://placehold.co/32x32/F97316/FFFFFF?text=CK',
-    firstName: 'Chithambaram',
-    lastName: 'K',
-    businessEmail: 'chithambaram@india.dk',
-    phone: '+91 98765 43220',
-    personalEmail: 'chithambaram.personal@gmail.com',
-    company: 'India DK',
-    companyLogo: 'https://placehold.co/24x24/F97316/FFFFFF?text=I',
-    jobTitle: 'Consultant',
-    location: 'India',
-    companySize: '1-10',
-    companyWebsite: 'http://india.dk',
-    industry: 'Professional Services',
-    linkedinUrl: 'https://linkedin.com/in/chithambaram-k',
-    bio: 'Independent consultant specializing in business strategy and operations.',
-    gender: 'Male'
-  },
-  {
-    id: '12',
-    profilePicture: 'https://placehold.co/32x32/6B7280/FFFFFF?text=PM',
-    firstName: 'Pravinraj',
-    lastName: 'M',
-    businessEmail: 'pravinraj.m@company.com',
-    phone: '+91 98765 43221',
-    personalEmail: 'pravinraj.personal@gmail.com',
-    company: 'Unknown Company',
-    companyLogo: 'https://placehold.co/24x24/6B7280/FFFFFF?text=?',
-    jobTitle: 'no current title +1',
-    location: 'India',
-    companySize: 'Unknown',
-    companyWebsite: '',
-    industry: '',
-    linkedinUrl: '',
-    bio: '',
-    gender: 'Male'
-  },
-  {
-    id: '13',
-    profilePicture: 'https://placehold.co/32x32/059669/FFFFFF?text=MT',
-    firstName: 'Muthukarthik',
-    lastName: 'T',
-    businessEmail: 'muthukarthik@astrazeneca.in',
-    phone: '+91 98765 43222',
-    personalEmail: 'muthukarthik.personal@gmail.com',
-    company: 'AstraZeneca',
-    companyLogo: 'https://placehold.co/24x24/059669/FFFFFF?text=A',
-    jobTitle: 'Research Scientist',
-    location: 'India',
-    companySize: '1001-5000',
-    companyWebsite: 'https://www.astrazeneca.in/',
-    industry: 'Manufacturing',
-    linkedinUrl: 'https://linkedin.com/in/muthukarthik-t',
-    bio: 'Research scientist focused on pharmaceutical development and clinical trials.',
-    gender: 'Male'
-  },
-  {
-    id: '14',
-    profilePicture: 'https://placehold.co/32x32/1E40AF/FFFFFF?text=KK',
-    firstName: 'Komal',
-    lastName: 'Kumari',
-    businessEmail: 'komal.kumari@hp.com',
-    phone: '+91 98765 43223',
-    personalEmail: 'komal.personal@gmail.com',
-    company: 'HP',
-    companyLogo: 'https://placehold.co/24x24/1E40AF/FFFFFF?text=H',
-    jobTitle: 'Product Manager',
-    location: 'India',
-    companySize: '10001+',
-    companyWebsite: 'http://www.hp.com',
-    industry: 'Professional Services',
-    linkedinUrl: 'https://linkedin.com/in/komal-kumari',
-    bio: 'Product management professional with expertise in technology solutions.',
-    gender: 'Female'
-  },
-  {
-    id: '13',
-    profilePicture: 'https://placehold.co/32x32/3B82F6/FFFFFF?text=AS',
-    firstName: 'Amit',
-    lastName: 'Sharma',
-    businessEmail: 'amit.sharma@techcorp.com',
-    phone: '+91 98765 43222',
-    personalEmail: 'amit.personal@gmail.com',
-    company: 'TechCorp',
-    companyLogo: 'https://placehold.co/24x24/3B82F6/FFFFFF?text=T',
-    jobTitle: 'Senior Developer',
-    location: 'India',
-    companySize: '1001-5000',
-    companyWebsite: 'https://techcorp.com',
-    industry: 'Technology',
-    linkedinUrl: 'https://linkedin.com/in/amit-sharma',
-    bio: 'Senior software developer with expertise in cloud technologies.',
-    gender: 'Male'
-  },
-  {
-    id: '14',
-    profilePicture: 'https://placehold.co/32x32/10B981/FFFFFF?text=PS',
-    firstName: 'Priya',
-    lastName: 'Singh',
-    businessEmail: 'priya.singh@marketing.com',
-    phone: '+91 98765 43223',
-    personalEmail: 'priya.personal@gmail.com',
-    company: 'Marketing Pro',
-    companyLogo: 'https://placehold.co/24x24/10B981/FFFFFF?text=M',
-    jobTitle: 'Marketing Manager',
-    location: 'India',
-    companySize: '51-200',
-    companyWebsite: 'https://marketingpro.com',
-    industry: 'Marketing',
-    linkedinUrl: 'https://linkedin.com/in/priya-singh',
-    bio: 'Digital marketing expert with focus on growth strategies.',
-    gender: 'Female'
-  },
-  {
-    id: '15',
-    profilePicture: 'https://placehold.co/32x32/F59E0B/FFFFFF?text=RK',
-    firstName: 'Rajesh',
-    lastName: 'Kumar',
-    businessEmail: 'rajesh.kumar@finance.com',
-    phone: '+91 98765 43224',
-    personalEmail: 'rajesh.personal@gmail.com',
-    company: 'Finance Solutions',
-    companyLogo: 'https://placehold.co/24x24/F59E0B/FFFFFF?text=F',
-    jobTitle: 'Financial Analyst',
-    location: 'India',
-    companySize: '201-500',
-    companyWebsite: 'https://financesolutions.com',
-    industry: 'Finance',
-    linkedinUrl: 'https://linkedin.com/in/rajesh-kumar',
-    bio: 'Financial analyst specializing in investment strategies.',
-    gender: 'Male'
-  },
-  {
-    id: '16',
-    profilePicture: 'https://placehold.co/32x32/EF4444/FFFFFF?text=SM',
-    firstName: 'Sneha',
-    lastName: 'Mishra',
-    businessEmail: 'sneha.mishra@healthcare.com',
-    phone: '+91 98765 43225',
-    personalEmail: 'sneha.personal@gmail.com',
-    company: 'HealthCare Plus',
-    companyLogo: 'https://placehold.co/24x24/EF4444/FFFFFF?text=H',
-    jobTitle: 'Medical Consultant',
-    location: 'India',
-    companySize: '1001-5000',
-    companyWebsite: 'https://healthcareplus.com',
-    industry: 'Healthcare',
-    linkedinUrl: 'https://linkedin.com/in/sneha-mishra',
-    bio: 'Medical consultant with expertise in patient care management.',
-    gender: 'Female'
-  },
-  {
-    id: '17',
-    profilePicture: 'https://placehold.co/32x32/8B5CF6/FFFFFF?text=VK',
-    firstName: 'Vikram',
-    lastName: 'Krishnan',
-    businessEmail: 'vikram.krishnan@education.com',
-    phone: '+91 98765 43226',
-    personalEmail: 'vikram.personal@gmail.com',
-    company: 'EduTech Solutions',
-    companyLogo: 'https://placehold.co/24x24/8B5CF6/FFFFFF?text=E',
-    jobTitle: 'Education Director',
-    location: 'India',
-    companySize: '51-200',
-    companyWebsite: 'https://edutechsolutions.com',
-    industry: 'Education',
-    linkedinUrl: 'https://linkedin.com/in/vikram-krishnan',
-    bio: 'Education technology leader focused on digital learning solutions.',
-    gender: 'Male'
-  },
-  {
-    id: '18',
-    profilePicture: 'https://placehold.co/32x32/06B6D4/FFFFFF?text=AM',
-    firstName: 'Anita',
-    lastName: 'Mehta',
-    businessEmail: 'anita.mehta@retail.com',
-    phone: '+91 98765 43227',
-    personalEmail: 'anita.personal@gmail.com',
-    company: 'RetailMax',
-    companyLogo: 'https://placehold.co/24x24/06B6D4/FFFFFF?text=R',
-    jobTitle: 'Operations Manager',
-    location: 'India',
-    companySize: '1001-5000',
-    companyWebsite: 'https://retailmax.com',
-    industry: 'Retail',
-    linkedinUrl: 'https://linkedin.com/in/anita-mehta',
-    bio: 'Operations manager with expertise in retail supply chain management.',
-    gender: 'Female'
-  },
-  {
-    id: '19',
-    profilePicture: 'https://placehold.co/32x32/84CC16/FFFFFF?text=DP',
-    firstName: 'Deepak',
-    lastName: 'Patel',
-    businessEmail: 'deepak.patel@manufacturing.com',
-    phone: '+91 98765 43228',
-    personalEmail: 'deepak.personal@gmail.com',
-    company: 'Manufacturing Co',
-    companyLogo: 'https://placehold.co/24x24/84CC16/FFFFFF?text=M',
-    jobTitle: 'Production Head',
-    location: 'India',
-    companySize: '5001-10000',
-    companyWebsite: 'https://manufacturingco.com',
-    industry: 'Manufacturing',
-    linkedinUrl: 'https://linkedin.com/in/deepak-patel',
-    bio: 'Production head with expertise in manufacturing process optimization.',
-    gender: 'Male'
-  },
-  {
-    id: '20',
-    profilePicture: 'https://placehold.co/32x32/F97316/FFFFFF?text=NG',
-    firstName: 'Neha',
-    lastName: 'Gupta',
-    businessEmail: 'neha.gupta@consulting.com',
-    phone: '+91 98765 43229',
-    personalEmail: 'neha.personal@gmail.com',
-    company: 'Consulting Pro',
-    companyLogo: 'https://placehold.co/24x24/F97316/FFFFFF?text=C',
-    jobTitle: 'Senior Consultant',
-    location: 'India',
-    companySize: '201-500',
-    companyWebsite: 'https://consultingpro.com',
-    industry: 'Consulting',
-    linkedinUrl: 'https://linkedin.com/in/neha-gupta',
-    bio: 'Senior consultant specializing in business transformation strategies.',
-    gender: 'Female'
-  }
-];
 
-// Column configuration
+// Column configuration (mapped to Apollo.io fields)
 const initialColumns = [
   { key: 'profilePicture', label: 'Profile Picture', isVisible: true },
   { key: 'firstName', label: 'First Name', isVisible: true },
   { key: 'lastName', label: 'Last Name', isVisible: true, isSticky: true },
-  { key: 'businessEmail', label: 'Business Email', isVisible: true },
+  { key: 'pro_email', label: 'Business Email', isVisible: true },
   { key: 'phone', label: 'Phone', isVisible: true },
-  { key: 'personalEmail', label: 'Personal Email', isVisible: true },
-  { key: 'company', label: 'Company', isVisible: true },
-  { key: 'jobTitle', label: 'Job Title', isVisible: true },
+  { key: 'perso_email', label: 'Personal Email', isVisible: false },
+  { key: 'company_name', label: 'Company', isVisible: true },
+  { key: 'job', label: 'Job Title', isVisible: true },
   { key: 'location', label: 'Location', isVisible: true },
-  { key: 'companySize', label: 'Company Size', isVisible: true },
-  { key: 'companyWebsite', label: 'Company Website', isVisible: true },
+  { key: 'organization_employees_estimate', label: 'Company Size', isVisible: true },
+  { key: 'website', label: 'Company Website', isVisible: true },
   { key: 'industry', label: 'Industry', isVisible: true },
-  { key: 'linkedinUrl', label: 'LinkedIn URL', isVisible: true },
-  { key: 'bio', label: 'Bio', isVisible: true },
-  { key: 'gender', label: 'Gender', isVisible: true }
+  { key: 'profile_url', label: 'LinkedIn URL', isVisible: true },
+  { key: 'bio', label: 'Bio', isVisible: false },
+  { key: 'seniority', label: 'Seniority', isVisible: true },
+  { key: 'email_status', label: 'Email Status', isVisible: true },
+  { key: 'city', label: 'City', isVisible: false },
+  { key: 'state', label: 'State', isVisible: false },
+  { key: 'country', label: 'Country', isVisible: false },
+  { key: 'departments', label: 'Departments', isVisible: false },
+  { key: 'gender', label: 'Gender', isVisible: false }
 ];
 
 // Column Selector Component
@@ -468,7 +57,7 @@ const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, set
   );
 
   const toggleColumnVisibility = (columnKey: any) => {
-    setColumns((prev: any) => prev.map((col: any) => 
+    setColumns((prev: any) => prev.map((col: any) =>
       col.key === columnKey ? { ...col, isVisible: !col.isVisible } : col
     ));
   };
@@ -491,7 +80,7 @@ const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, set
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Search a column</h3>
-            
+
             <div className="relative mb-4">
               <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -510,13 +99,11 @@ const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, set
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleColumnVisibility(column.key)}
-                      className={`w-8 h-5 rounded-full transition-colors ${
-                        column.isVisible ? 'bg-orange-500' : 'bg-gray-300'
-                      }`}
+                      className={`w-8 h-5 rounded-full transition-colors ${column.isVisible ? 'bg-orange-500' : 'bg-gray-300'
+                        }`}
                     >
-                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                        column.isVisible ? 'translate-x-4' : 'translate-x-0.5'
-                      }`} />
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${column.isVisible ? 'translate-x-4' : 'translate-x-0.5'
+                        }`} />
                     </button>
                     {column.isVisible ? (
                       <Eye size={16} className="text-gray-600" />
@@ -543,86 +130,241 @@ const ColumnSelector = ({ isOpen, onClose, columns, setColumns, searchQuery, set
   );
 };
 
-interface ActiveFilter {
-  id: string;
-  category: string;
-  label: string;
-  value: string;
-}
-
 export default function PeopleDatabasePage() {
+  // UI State
   const [columns, setColumns] = useState(initialColumns);
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false);
   const [columnSearchQuery, setColumnSearchQuery] = useState('');
-  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [isFilterSidebarCollapsed, setIsFilterSidebarCollapsed] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(100);
-  const totalItems = 72649323;
-  
-  // Audience selection modal state
   const [isAudienceModalOpen, setIsAudienceModalOpen] = useState(false);
+
+  // Data State
+  const [people, setPeople] = useState<Person[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [paginationData, setPaginationData] = useState<PaginationData | null>(null);
+  const [jumpToPage, setJumpToPage] = useState('');
+
+  // Page size options
+  const pageSizeOptions = [10, 25, 50, 100];
+
+  // Filter State (maps to Apollo.io API) - Only filters from FILTER_CONFIGS
+  const [filters, setFilters] = useState<Record<string, string[]>>({
+    selectedJobs: [],
+    selectedcountry: [],
+    selectedregion: [],
+    selecteddepartment: [],
+    selectedposition: [],
+    selectedseniority: []
+  });
 
   const visibleColumns = columns.filter(col => col.isVisible);
 
+  // Build API payload from filters
+  const buildAPIPayload = (filters: Record<string, string[]>, page: number, perPage: number) => {
+    const payload: any = {
+      page,
+      per_page: perPage
+    };
+
+    // Map filters to API parameters using FILTER_CONFIGS
+    Object.keys(FILTER_CONFIGS).forEach(key => {
+      const config = FILTER_CONFIGS[key as keyof typeof FILTER_CONFIGS];
+      const filterValues = filters[config.key];
+
+      if (filterValues && filterValues.length > 0) {
+        payload[config.apiKey] = filterValues;
+      }
+    });
+
+    return payload;
+  };
+
+  // Fetch people data from API
+  const fetchPeople = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('🔍 Fetching people with filters:', filters);
+
+      // Build API payload
+      const payload = buildAPIPayload(filters, currentPage, itemsPerPage);
+      console.log('📤 API Payload:', payload);
+
+      // Call API
+      const response = await peopleService.searchPeople(payload);
+      console.log('📥 API Response:', response);
+
+      // Update people data
+      setPeople(response.data || []);
+
+      // Update pagination
+      if (response.pagination) {
+        setPaginationData(response.pagination);
+        setTotalRecords(response.pagination.total_entries);
+        setTotalPages(response.pagination.total_pages);
+        setCurrentPage(response.pagination.page);
+      }
+
+      toast.success(`Found ${response.data?.length || 0} people`);
+
+    } catch (err: any) {
+      console.error('❌ Error fetching people:', err);
+      setError(err.message || 'Failed to fetch people');
+      setPeople([]);
+      toast.error(err.message || 'Failed to fetch people');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, currentPage, itemsPerPage]);
+
+  // Fetch data on mount and when filters/pagination change
+  useEffect(() => {
+    // Only fetch if we have some filters or it's initial load
+    if (Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : f) || currentPage > 1) {
+      fetchPeople();
+    }
+  }, [fetchPeople]);
+
   const handleSelectAll = () => {
-    if (selectedRows.length === mockPeople.length) {
+    if (selectedRows.length === people.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(mockPeople.map((person: any) => person.id) as any);
+      setSelectedRows(people.map((person: any) => person.id) as any);
     }
   };
 
   const handleSelectRow = (personId: any) => {
-    setSelectedRows((prev: any) => 
-      prev.includes(personId) 
+    setSelectedRows((prev: any) =>
+      prev.includes(personId)
         ? prev.filter((id: any) => id !== personId)
         : [...prev, personId]
     );
   };
 
-  const handleRemoveFilter = (filterId: string) => {
-    setActiveFilters(prev => prev.filter(filter => filter.id !== filterId));
-  };
-
-  const handleAddFilter = (category: string, option: any, value: string) => {
-    const newFilter: ActiveFilter = {
-      id: `${category}_${option.id}_${Date.now()}`,
-      category,
-      label: option.label,
-      value
-    };
-    setActiveFilters(prev => [...prev, newFilter]);
-  };
-
-  const handleSaveFilters = () => {
-    // In a real app, this would save filters to backend
-    console.log('Saving filters:', activeFilters);
+  const handleFilterChange = (filterKey: string, values: string[]) => {
+    console.log('Filter changed:', filterKey, values);
+    setFilters(prev => ({
+      ...prev,
+      [filterKey]: values
+    }));
   };
 
   const handleResetFilters = () => {
-    setActiveFilters([]);
+    setFilters({
+      selectedJobs: [],
+      selectedcountry: [],
+      selectedregion: [],
+      selecteddepartment: [],
+      selectedposition: [],
+      selectedseniority: []
+    });
+    setCurrentPage(1);
+    setPeople([]);
+    setSelectedRows([]);
+    toast.success('Filters reset');
   };
 
-  // Audience selection handlers
+  const handleApplyFilters = () => {
+    setCurrentPage(1); // Reset to first page
+    fetchPeople();
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+    toast.success(`Showing ${newSize} items per page`);
+  };
+
+  const handleJumpToPage = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pageNum = parseInt(jumpToPage);
+    if (pageNum >= 1 && pageNum <= totalPages) {
+      setCurrentPage(pageNum);
+      setJumpToPage('');
+      toast.success(`Jumped to page ${pageNum}`);
+    } else {
+      toast.error(`Please enter a page between 1 and ${totalPages}`);
+    }
+  };
+
+  // Import leads handlers
   const handleImportToAudience = () => {
     setIsAudienceModalOpen(true);
   };
 
-  const handleSelectAudience = (audienceId: string) => {
-    console.log(`Importing ${selectedRows.length} leads to audience ${audienceId}`);
-    // Here you would implement the actual import logic
-    // For now, just show a success message
-    alert(`Successfully imported ${selectedRows.length} leads to audience ${audienceId}`);
-    setSelectedRows([]); // Clear selection after import
-  };
+  const handleImportLeads = async (audienceName: string) => {
+    try {
+      console.log('📤 Importing leads:', { audienceName, count: selectedRows.length });
 
-  const handleCreateNewAudience = () => {
-    console.log('Create new audience clicked');
-    // Here you would navigate to audience creation page or open audience creation modal
-    // For now, just show a message
-    alert('Navigate to create new audience page');
+      // Get selected leads data
+      const selectedLeads = people.filter(person => selectedRows.includes(person.id));
+
+      if (selectedLeads.length === 0) {
+        toast.error('No leads selected');
+        return;
+      }
+
+      // Build payload matching old frontend format
+      // Note: campaign_id will be added by backend or use a default
+      const payload = {
+        campaign_id: '', // Empty - backend will handle or create default
+        audience_name: audienceName,
+        leads: selectedLeads.map((user) => ({
+          bio: user.bio,
+          picture: user.picture,
+          profile_url: user.profile_url,
+          location: user.location,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          company_name: user.company_name,
+          phone: user.phone,
+          pro_email: user.pro_email,
+          perso_email: user.perso_email,
+          job: user.job,
+          website: user.website,
+          industry: user.industry,
+          linkedin: user.profile_url,
+          twitter: user.twitter,
+          gender: user.gender,
+          city: user.city,
+          country: user.country,
+          email_status: user.email_status,
+          employment_history: user.employment_history,
+          facebook_url: user.facebook_url,
+          github_url: user.github_url,
+          organization: user.organization,
+          seniority: user.seniority,
+          state: user.state,
+          departments: user.departments,
+          subdepartments: user.subdepartments
+        }))
+      };
+
+      console.log('📦 Import payload:', payload);
+
+      // Call API
+      await leadService.addLeadsToCampaign(payload);
+
+      // Success feedback
+      toast.success(`Successfully imported ${selectedLeads.length} leads to "${audienceName}"`);
+
+      // Clear selection
+      setSelectedRows([]);
+
+    } catch (err: any) {
+      console.error('❌ Import error:', err);
+      toast.error(err.message || 'Failed to import leads');
+      throw err; // Re-throw to let modal handle it
+    }
   };
 
   const handleToggleFilterSidebar = () => {
@@ -643,34 +385,39 @@ export default function PeopleDatabasePage() {
       case 'lastName':
         return (
           <div className="flex items-center gap-3">
-            {person.profilePicture ? (
-              <img src={person.profilePicture} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+            {person.picture ? (
+              <img src={person.picture} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
             ) : (
-              getPersonAvatar(`${person.firstName} ${person.lastName}`)
+              getPersonAvatar(`${person.first_name} ${person.last_name}`)
             )}
             <div>
-              <div className="font-medium text-gray-900">{person.firstName} {person.lastName}</div>
-              {person.jobTitle && <div className="text-xs text-gray-500">{person.jobTitle}</div>}
+              <div className="font-medium text-gray-900">{person.first_name} {person.last_name}</div>
+              {person.job && <div className="text-xs text-gray-500">{person.job}</div>}
             </div>
-            {person.linkedinUrl && (
-              <ExternalLink size={16} className="text-blue-600" />
+            {person.profile_url && (
+              <a href={person.profile_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink size={16} className="text-blue-600" />
+              </a>
             )}
           </div>
         );
       case 'profilePicture':
-        return person.profilePicture ? (
-          <img src={person.profilePicture} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+        return person.picture ? (
+          <img src={person.picture} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
         ) : (
-          getPersonAvatar(`${person.firstName} ${person.lastName}`)
+          getPersonAvatar(`${person.first_name} ${person.last_name}`)
         );
       case 'firstName':
-        return <span className="text-gray-900">{person.firstName}</span>;
+        return <span className="text-gray-900">{person.first_name}</span>;
+      case 'fullName':
+        return <span className="text-gray-900">{person.first_name} {person.last_name}</span>;
       case 'businessEmail':
-        return person.businessEmail ? (
+      case 'pro_email':
+        return person.pro_email ? (
           <div className="flex items-center gap-2">
             <Mail size={16} className="text-gray-400" />
-            <a href={`mailto:${person.businessEmail}`} className="text-blue-600 hover:text-blue-800 text-sm">
-              {person.businessEmail}
+            <a href={`mailto:${person.pro_email}`} className="text-blue-600 hover:text-blue-800 text-sm">
+              {person.pro_email}
             </a>
           </div>
         ) : null;
@@ -684,25 +431,28 @@ export default function PeopleDatabasePage() {
           </div>
         ) : null;
       case 'personalEmail':
-        return person.personalEmail ? (
+      case 'perso_email':
+        return person.perso_email ? (
           <div className="flex items-center gap-2">
             <Mail size={16} className="text-gray-400" />
-            <a href={`mailto:${person.personalEmail}`} className="text-blue-600 hover:text-blue-800 text-sm">
-              {person.personalEmail}
+            <a href={`mailto:${person.perso_email}`} className="text-blue-600 hover:text-blue-800 text-sm">
+              {person.perso_email}
             </a>
           </div>
         ) : null;
       case 'company':
+      case 'company_name':
         return (
           <div className="flex items-center gap-2">
-            {person.companyLogo && (
-              <img src={person.companyLogo} alt={person.company} className="w-6 h-6 rounded" />
+            {person.organization_logo_url && (
+              <img src={person.organization_logo_url} alt={person.company_name} className="w-6 h-6 rounded" />
             )}
-            <span className="text-gray-900">{person.company}</span>
+            <span className="text-gray-900">{person.company_name}</span>
           </div>
         );
       case 'jobTitle':
-        return <span className="text-gray-900">{person.jobTitle}</span>;
+      case 'job':
+        return <span className="text-gray-900">{person.job}</span>;
       case 'location':
         return (
           <div className="flex items-center gap-2">
@@ -711,18 +461,23 @@ export default function PeopleDatabasePage() {
           </div>
         );
       case 'companySize':
-        return <span className="text-gray-900">{person.companySize}</span>;
+      case 'organization_employees_estimate':
+        return person.organization_employees_estimate ? (
+          <span className="text-gray-900">{person.organization_employees_estimate}</span>
+        ) : null;
       case 'companyWebsite':
-        return person.companyWebsite ? (
-          <a href={person.companyWebsite} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm">
-            {person.companyWebsite}
+      case 'website':
+        return person.website ? (
+          <a href={person.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm">
+            {person.website}
           </a>
         ) : null;
       case 'industry':
         return <span className="text-gray-900">{person.industry}</span>;
       case 'linkedinUrl':
-        return person.linkedinUrl ? (
-          <a href={person.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+      case 'profile_url':
+        return person.profile_url ? (
+          <a href={person.profile_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
             <ExternalLink size={16} />
             <span className="text-sm">LinkedIn</span>
           </a>
@@ -735,6 +490,23 @@ export default function PeopleDatabasePage() {
         ) : null;
       case 'gender':
         return <span className="text-gray-900">{person.gender}</span>;
+      case 'seniority':
+        return person.seniority ? (
+          <span className="text-gray-900">{person.seniority}</span>
+        ) : null;
+      case 'email_status':
+        return person.email_status ? (
+          <span className={`px-2 py-1 text-xs rounded-full ${person.email_status === 'verified' ? 'bg-green-100 text-green-800' :
+              person.email_status === 'guessed' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-gray-100 text-gray-800'
+            }`}>
+            {person.email_status}
+          </span>
+        ) : null;
+      case 'departments':
+        return person.departments && person.departments.length > 0 ? (
+          <span className="text-gray-900">{person.departments.join(', ')}</span>
+        ) : null;
       default:
         return <span className="text-gray-900">{person[column.key]}</span>;
     }
@@ -835,173 +607,375 @@ export default function PeopleDatabasePage() {
           flex-direction: column;
         }
       `}</style>
-      
+
       {/* Filter Sidebar */}
-      <FilterSidebar
+      <FilterSidebarSimple
         isCollapsed={isFilterSidebarCollapsed}
         onToggleCollapse={handleToggleFilterSidebar}
-        activeFilters={activeFilters}
-        onRemoveFilter={handleRemoveFilter}
-        onAddFilter={handleAddFilter}
-        onSaveFilters={handleSaveFilters}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onApplyFilters={handleApplyFilters}
         onResetFilters={handleResetFilters}
       />
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col main-content">
         {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">People</h1>
-            <div className="flex items-center gap-1">
-              <span className="text-2xl font-bold text-gray-900">73M</span>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">People</h1>
+              <div className="flex items-center gap-1">
+                {loading ? (
+                  <Loader2 size={20} className="animate-spin text-orange-500" />
+                ) : (
+                  <>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {totalRecords > 0 ? (
+                        totalRecords >= 1000000
+                          ? `${(totalRecords / 1000000).toFixed(1)}M`
+                          : totalRecords >= 1000
+                            ? `${(totalRecords / 1000).toFixed(1)}K`
+                            : totalRecords
+                      ) : '0'}
+                    </span>
+                    {totalRecords > 0 && (
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Selected Count */}
+              {selectedRows.length > 0 && (
+                <div className="text-sm text-gray-700 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
+                  <span className="font-medium text-orange-700">{selectedRows.length}</span> selected
+                </div>
+              )}
+
+              {/* Filter Toggle Button */}
+              <button
+                onClick={handleToggleFilterSidebar}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Filter size={16} className="text-gray-600" />
+                <span className="text-gray-700">Filters</span>
+                {Object.values(filters).some((f: any) => f.length > 0) && (
+                  <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {Object.values(filters).filter((f: any) => f.length > 0).length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
-          
-          <button 
-            onClick={handleToggleFilterSidebar}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Filter size={16} className="text-gray-600" />
-            <span className="text-gray-700">Filters</span>
-            {activeFilters.length > 0 && (
-              <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {activeFilters.length}
-              </span>
-            )}
-          </button>
         </div>
-      </div>
 
-      {/* Table Container */}
-      <div className="table-scroll-container">
-        <table className="people-table">
-          <thead className="bg-gray-50 border-b border-gray-200 sticky-header">
-            <tr>
-              {/* Select All Checkbox */}
-              <th className="sticky-checkbox px-4 py-3 text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedRows.length === mockPeople.length}
-                  onChange={handleSelectAll}
-                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                />
-              </th>
-
-              {/* Dynamic Columns */}
-              {visibleColumns.map((column, index) => (
-                <th
-                  key={column.key}
-                  className={`px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap ${
-                    column.key === 'profilePicture' ? 'sticky-profile' : 
-                    column.isSticky ? 'sticky-name' : ''
-                  }`}
-                >
-                  {column.label}
-                </th>
-              ))}
-
-              {/* Add Column Button */}
-              <th className="px-4 py-3 text-left">
-                <button
-                  onClick={() => setIsColumnMenuOpen(true)}
-                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-                >
-                  <Plus size={16} className="text-gray-600" />
-                </button>
-              </th>
-
-              {/* Actions Column */}
-              <th className="px-4 py-3 text-left">
-                <MoreHorizontal size={16} className="text-gray-400" />
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="bg-white divide-y divide-gray-200">
-            {mockPeople.map((person, rowIndex) => (
-              <tr key={person.id} className="hover:bg-gray-50 transition-colors">
-                {/* Row Checkbox */}
-                <td className="sticky-checkbox px-4 py-3">
+        {/* Table Container */}
+        <div className="table-scroll-container">
+          <table className="people-table">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky-header">
+              <tr>
+                {/* Select All Checkbox */}
+                <th className="sticky-checkbox px-4 py-3 text-left">
                   <input
                     type="checkbox"
-                    checked={selectedRows.includes(person.id)}
-                    onChange={() => handleSelectRow(person.id)}
+                    checked={people.length > 0 && selectedRows.length === people.length}
+                    onChange={handleSelectAll}
                     className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    disabled={loading || people.length === 0}
                   />
-                </td>
+                </th>
 
                 {/* Dynamic Columns */}
-                {visibleColumns.map((column, colIndex) => (
-                  <td
+                {visibleColumns.map((column, index) => (
+                  <th
                     key={column.key}
-                    className={`px-4 py-3 text-sm whitespace-nowrap ${
-                      column.key === 'profilePicture' ? 'sticky-profile' : 
-                      column.isSticky ? 'sticky-name' : ''
-                    }`}
+                    className={`px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap ${column.key === 'profilePicture' ? 'sticky-profile' :
+                        column.isSticky ? 'sticky-name' : ''
+                      }`}
                   >
-                    {renderCellContent(person, column)}
-                  </td>
+                    {column.label}
+                  </th>
                 ))}
 
-                {/* Add Column Placeholder */}
-                <td className="px-4 py-3"></td>
-
-                {/* Actions */}
-                <td className="px-4 py-3">
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <MoreHorizontal size={16} />
+                {/* Add Column Button */}
+                <th className="px-4 py-3 text-left">
+                  <button
+                    onClick={() => setIsColumnMenuOpen(true)}
+                    className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <Plus size={16} className="text-gray-600" />
                   </button>
-                </td>
+                </th>
+
+                {/* Actions Column */}
+                <th className="px-4 py-3 text-left">
+                  <MoreHorizontal size={16} className="text-gray-400" />
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
 
-      {/* Pagination */}
-      <div className="bg-white border-t border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing <span className="font-medium">1 - 100</span> of{' '}
-            <span className="font-medium">{totalItems.toLocaleString()}</span>
-          </div>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 3} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <Loader2 size={32} className="animate-spin text-orange-500" />
+                      <p className="text-gray-600">Loading people...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 3} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="text-red-500 text-lg">⚠️</div>
+                      <p className="text-red-600">{error}</p>
+                      <button
+                        onClick={fetchPeople}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : people.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 3} className="px-4 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="text-gray-400 text-lg">🔍</div>
+                      <p className="text-gray-600">No people found. Try adjusting your filters.</p>
+                      <button
+                        onClick={() => setIsFilterSidebarCollapsed(false)}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                      >
+                        Open Filters
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                people.map((person, rowIndex) => (
+                  <tr key={person.id} className="hover:bg-gray-50 transition-colors">
+                    {/* Row Checkbox */}
+                    <td className="sticky-checkbox px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(person.id)}
+                        onChange={() => handleSelectRow(person.id)}
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      />
+                    </td>
 
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50" disabled>
-              <ChevronLeft size={16} />
-            </button>
-            
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, '...', 30].map((page, index) => (
-                <button
-                  key={index}
-                  className={`w-8 h-8 rounded text-sm font-medium ${
-                    page === currentPage
-                      ? 'bg-orange-500 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+                    {/* Dynamic Columns */}
+                    {visibleColumns.map((column, colIndex) => (
+                      <td
+                        key={column.key}
+                        className={`px-4 py-3 text-sm whitespace-nowrap ${column.key === 'profilePicture' ? 'sticky-profile' :
+                            column.isSticky ? 'sticky-name' : ''
+                          }`}
+                      >
+                        {renderCellContent(person, column)}
+                      </td>
+                    ))}
+
+                    {/* Add Column Placeholder */}
+                    <td className="px-4 py-3"></td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3">
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Enhanced Pagination */}
+        <div className="bg-white border-t border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Left Section - Record Info & Page Size */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="text-sm text-gray-700">
+                {people.length > 0 ? (
+                  <>
+                    Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalRecords)}</span> of{' '}
+                    <span className="font-medium">{totalRecords.toLocaleString()}</span> entries
+                  </>
+                ) : (
+                  <span>No results</span>
+                )}
+              </div>
+
+              {/* Page Size Selector */}
+              {people.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Show:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                    disabled={loading}
+                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {pageSizeOptions.map(size => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-gray-600">per page</span>
+                </div>
+              )}
             </div>
 
-            <button className="p-2 text-gray-600 hover:text-gray-800">
-              <ChevronRight size={16} />
-            </button>
-          </div>
+            {/* Center Section - Page Navigation */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                {/* First Page Button */}
+                <button
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 transition-colors rounded hover:bg-gray-100"
+                  disabled={currentPage === 1 || loading}
+                  onClick={() => setCurrentPage(1)}
+                  title="First Page"
+                >
+                  <ChevronLeft size={16} className="transform scale-x-150" />
+                </button>
 
-          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity">
-            <span>Push to</span>
-            <ExternalLink size={16} />
-          </button>
+                {/* Previous Button */}
+                <button
+                  className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 transition-colors rounded hover:bg-gray-100"
+                  disabled={currentPage === 1 || loading}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {/* First page */}
+                  {currentPage > 2 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={loading}
+                        className="w-8 h-8 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                      >
+                        1
+                      </button>
+                      {currentPage > 3 && <span className="px-2 text-gray-400">•••</span>}
+                    </>
+                  )}
+
+                  {/* Current and adjacent pages */}
+                  {[currentPage - 1, currentPage, currentPage + 1].map((page) => {
+                    if (page < 1 || page > totalPages) return null;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        disabled={loading}
+                        className={`w-8 h-8 rounded text-sm font-medium transition-colors disabled:opacity-50 ${page === currentPage
+                            ? 'bg-orange-500 text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+
+                  {/* Last page */}
+                  {currentPage < totalPages - 1 && (
+                    <>
+                      {currentPage < totalPages - 2 && <span className="px-2 text-gray-400">•••</span>}
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={loading}
+                        className="w-8 h-8 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  className="p-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 transition-colors rounded hover:bg-gray-100"
+                  disabled={currentPage >= totalPages || loading}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  title="Next Page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+
+                {/* Last Page Button */}
+                <button
+                  className="p-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 transition-colors rounded hover:bg-gray-100"
+                  disabled={currentPage >= totalPages || loading}
+                  onClick={() => setCurrentPage(totalPages)}
+                  title="Last Page"
+                >
+                  <ChevronRight size={16} className="transform scale-x-150" />
+                </button>
+              </div>
+            )}
+
+            {/* Right Section - Jump to Page & Apply Filters */}
+            <div className="flex items-center gap-3">
+              {/* Jump to Page */}
+              {totalPages > 1 && (
+                <form onSubmit={handleJumpToPage} className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Go to:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    value={jumpToPage}
+                    onChange={(e) => setJumpToPage(e.target.value)}
+                    placeholder={currentPage.toString()}
+                    disabled={loading}
+                    className="w-16 px-2 py-1.5 text-sm text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !jumpToPage}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Go
+                  </button>
+                </form>
+              )}
+
+              {/* Apply Filters Button */}
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 shadow-md"
+                onClick={handleApplyFilters}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search size={16} />
+                    <span>Apply Filters</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Floating Import Button */}
@@ -1028,14 +1002,14 @@ export default function PeopleDatabasePage() {
         setSearchQuery={setColumnSearchQuery}
       />
 
-      {/* Audience Selection Modal */}
-      <AudienceSelectionModal
+      {/* Import Leads Modal */}
+      <ImportLeadsModal
         isOpen={isAudienceModalOpen}
         onClose={() => setIsAudienceModalOpen(false)}
-        selectedLeadsCount={selectedRows.length}
-        onSelectAudience={handleSelectAudience}
-        onCreateNewAudience={handleCreateNewAudience}
+        selectedCount={selectedRows.length}
+        onImport={handleImportLeads}
       />
     </div>
   );
 }
+
