@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export default function MessageBubble({ message }: any) {
+
+
+   
 
   // Parse message JSON
   let parsedData: any = {};
@@ -33,8 +36,8 @@ export default function MessageBubble({ message }: any) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
           className={`rounded-xl px-4 py-3 ${isOutgoing
-              ? 'bg-gradient-to-r from-orange-500 to-blue-500 text-white'
-              : 'bg-gray-100 text-gray-900'
+            ? 'bg-gradient-to-r from-orange-500 to-blue-500 text-white'
+            : 'bg-gray-100 text-gray-900'
             }`}
         >
 
@@ -49,10 +52,10 @@ export default function MessageBubble({ message }: any) {
               </div>
               <div className="text-sm opacity-90">
                 <div className="font-medium">Subject: {parsedData.subject}</div>
-                <div 
+                <div
                   className="mt-1"
-                  dangerouslySetInnerHTML={{ 
-                    __html: (parsedData.message || parsedData.body || '')?.replace(/&lt;/g, '<')?.replace(/&gt;/g, '>') 
+                  dangerouslySetInnerHTML={{
+                    __html: (parsedData.message || parsedData.body || '')?.replace(/&lt;/g, '<')?.replace(/&gt;/g, '>')
                   }}
                 />
 
@@ -103,8 +106,15 @@ export default function MessageBubble({ message }: any) {
             </div>
           )}
 
+          {message.type == 'linkedin_message_sent' &&
+            <div className="text-sm leading-relaxed">
+              { JSON.parse(parsedData).message || 'Message' } 
+            </div>
+          }
+
+
           {/* REGULAR TEXT MESSAGE */}
-          {message.type !== 'voice_call_recording' &&
+          {message.type !== 'linkedin_message_sent' && message.type !== 'voice_call_recording' &&
             message.type !== 'action_ai_voice_message' &&
             (message.type !== 'action_send_email' && message.type !== 'inbox_email_message' || !parsedData.subject) && (
               <div className="text-sm leading-relaxed">
