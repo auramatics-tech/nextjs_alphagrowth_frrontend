@@ -198,15 +198,7 @@ export default function IdentityManagementPage() {
         }
     };
 
-    const days = [
-        { key: 'monday', label: 'Monday' },
-        { key: 'tuesday', label: 'Tuesday' },
-        { key: 'wednesday', label: 'Wednesday' },
-        { key: 'thursday', label: 'Thursday' },
-        { key: 'friday', label: 'Friday' },
-        { key: 'saturday', label: 'Saturday' },
-        { key: 'sunday', label: 'Sunday' }
-    ] as const;
+     
 
     const sidebarTabs = [
         {

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, CheckCircle, ChevronDown, Loader2, AlertCircle, X } from 'lucide-react';
 import { Identity } from '../../types/identity.types';
 import { identityService } from '../../services/identityService';
+import { toast } from 'react-hot-toast';
 
 interface EmailConnectionDropdownProps {
   identity: Identity;
@@ -59,15 +60,19 @@ export default function EmailConnectionDropdown({
     try {
       setIsLoading(true);
       setError(null);
+      console.log("identity---",identity);
       
-      const providerType = identity?.email_detail?.provider_type || 'GMAIL';
-      await (identityService as any).signout(identity.id, { type: providerType });
+      const providerType = identity?.email_detail?.type || 'GMAIL';
+      await identityService.signout(identity.id, { type: providerType });
       
+      toast.success(`Successfully signed out from ${getProviderDisplayName(providerType)}`);
       onRefresh();
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Email signout failed:', error);
-      setError('Failed to sign out from email');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to sign out from email';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

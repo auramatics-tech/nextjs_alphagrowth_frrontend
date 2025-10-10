@@ -202,5 +202,18 @@ export const identityService = {
       console.error('Error verifying LinkedIn captcha:', error);
       throw error;
     }
+  },
+
+  /**
+   * Sign out from a platform (LinkedIn, Email, etc.)
+   */
+  signout: async (identityId: string, data: { type: string }): Promise<any> => {
+    try {
+      const response = await apiClient.post(`/pub/v1/linkedin-connections/signout/${identityId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error signing out from ${data.type}:`, error);
+      throw error;
+    }
   }
 };

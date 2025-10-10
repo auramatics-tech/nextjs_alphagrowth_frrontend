@@ -5,23 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ConversationListPanel from '@/components/inbox/ConversationListPanel';
 import ChatPanel from '@/components/inbox/ChatPanel';
 import ProfilePanel from '@/components/inbox/ProfilePanel';
-import { inboxService, Conversation, Lead, InboxMessage, MessageRepliedLead, Contact } from '@/services/inboxService';
+import { inboxService, Conversation,  InboxMessage } from '@/services/inboxService';
 import { toast } from 'react-hot-toast';
 
-// Types
-interface Identity {
-  id: string;
-  name: string;
-  email: string;
-  company: string;
-}
-
+ 
 export default function InboxPage() {
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [isProfileVisible, setIsProfileVisible] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedIdentity, setSelectedIdentity] = useState<string>('');
+ 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,14 +73,15 @@ export default function InboxPage() {
 
   const handleSendMessage = async (leadId: string, message: string, channel: 'linkedin' | 'email', subject?: string) => {
     try {
+    console.log("selectedConversationselectedConversation",selectedConversation?.identity?.id);
     
 
       const messageData = {
         message,
-        identity_id: selectedIdentity,
+        identity_id: selectedConversation?.identity?.id,
         channel,
         subject,
-        userId: selectedIdentity // Using identity as userId for now
+        userId: selectedConversation?.identity?.id // Using identity as userId for now
       };
 
       await inboxService.sendMessage(leadId, messageData);

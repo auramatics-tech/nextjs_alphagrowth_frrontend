@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-
     MoreHorizontal,
     Edit3, Clock
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'react-hot-toast';
 
 
 import { EmailConnectionDropdown } from '@/components/identities';
@@ -43,6 +43,7 @@ const IdentityCard = ({
     isLoading: boolean;
 }) => {
     const [showDropdown, setShowDropdown] = useState(false);
+    const [isLinkedInSigningOut, setIsLinkedInSigningOut] = useState(false);
 
 
 
@@ -54,10 +55,24 @@ const IdentityCard = ({
 
     const handleLinkedInAction = () => {
         if (identity.linkedin_sign === 'loggedin') {
-
-
+            // Do nothing - sign out is handled by onSignOut prop
         } else {
             onLinkedInConnect(identity.id);
+        }
+    };
+
+    const handleLinkedInSignOut = async () => {
+        try {
+            setIsLinkedInSigningOut(true);
+            await identityService.signout(identity.id, { type: 'LINKEDIN' });
+            toast.success('Successfully signed out from LinkedIn');
+            onRefresh(); // Refresh the identity list
+        } catch (error: any) {
+            console.error('LinkedIn signout failed:', error);
+            const errorMessage = error?.response?.data?.message || error?.message || 'Failed to sign out from LinkedIn';
+            toast.error(errorMessage);
+        } finally {
+            setIsLinkedInSigningOut(false);
         }
     };
 
@@ -94,7 +109,8 @@ const IdentityCard = ({
                             channel="linkedin"
                             status={identity.linkedin_sign === 'loggedin' ? "connected" : "disconnected"}
                             onClick={handleLinkedInAction}
-
+                            onSignOut={identity.linkedin_sign === 'loggedin' ? handleLinkedInSignOut : undefined}
+                            isSigningOut={isLinkedInSigningOut}
                         />
                         <EmailConnectionDropdown
                             identity={identity}

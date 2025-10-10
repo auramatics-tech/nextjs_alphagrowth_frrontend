@@ -1,24 +1,26 @@
 'use client';
 
-import React  from 'react';
- 
+import React from 'react';
 import {
-    Linkedin, Mail, Phone, CheckCircle,
-    
-    Loader2 
+    Linkedin, Mail, Phone, CheckCircle, X, Loader2 
 } from 'lucide-react';
- 
 
-const ChannelConnectButton = ({
-    channel,
-    status,
-    onClick,
-    isLoading = false
-}: {
+interface ChannelConnectButtonProps {
     channel: 'linkedin' | 'email' | 'phone';
     status: 'connected' | 'disconnected' | 'verified' | 'unverified';
     onClick: () => void;
+    onSignOut?: () => void;
     isLoading?: boolean;
+    isSigningOut?: boolean;
+}
+
+const ChannelConnectButton: React.FC<ChannelConnectButtonProps> = ({
+    channel,
+    status,
+    onClick,
+    onSignOut,
+    isLoading = false,
+    isSigningOut = false
 }) => {
     const isConnected = status === 'connected' || status === 'verified';
     const channelConfig = {
@@ -32,7 +34,21 @@ const ChannelConnectButton = ({
         return (
             <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
                 <CheckCircle size={14} className="text-green-600" />
-                Connected
+                <span>{config.label} Connected</span>
+                {onSignOut && (
+                    <button
+                        onClick={onSignOut}
+                        disabled={isSigningOut}
+                        className="ml-1 hover:bg-green-200 rounded-full p-0.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={`Sign out from ${config.label}`}
+                    >
+                        {isSigningOut ? (
+                            <Loader2 size={12} className="animate-spin text-green-700" />
+                        ) : (
+                            <X size={12} className="text-green-700" />
+                        )}
+                    </button>
+                )}
             </div>
         );
     }
@@ -40,7 +56,7 @@ const ChannelConnectButton = ({
     return (
         <button
             onClick={onClick}
-            disabled={isLoading}
+            disabled={isLoading || isSigningOut}
             className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed`}
         >
             {isLoading ? (
