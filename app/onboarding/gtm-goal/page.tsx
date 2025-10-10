@@ -191,12 +191,87 @@ export default function GtmGoalPage() {
         setKpis(currentKpis => currentKpis.filter(kpi => kpi.id !== id));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isFormValid) return;
-        // console.log("GTM Goal Saved:", { gtmName, objective, selectedIcp, kpis, duration });
-        setShowToast(true);
-        setTimeout(() => { window.location.href = '/onboarding/success'; }, 1500);
+        
+        setIsPreviewLoading(true);
+        setGenError(null);
+        
+        try {
+            const win = typeof window !== 'undefined' ? window : undefined;
+            let businessId = win ? localStorage.getItem('businessId') : null;
+            let icpId = win ? localStorage.getItem('icpId') : null;
+            const domain = win ? localStorage.getItem('businessDomain') : null;
+            
+            console.log('[GTM] submit: initial data', { businessId, icpId, domain });
+
+            if (!businessId) {
+                throw new Error('Missing businessId. Please complete business setup first.');
+            }
+
+            // Auto-recover icpId if missing (like in frontend_old)
+            if (!icpId) {
+                try {
+                    const icpsRes = await businessService.getIcps(businessId);
+                    const first = icpsRes?.icps && Array.isArray(icpsRes.icps) ? icpsRes.icps[0] : null;
+                    if (first?.id) {
+                        icpId = first.id;
+                        localStorage.setItem('icpId', icpId as string);
+                        console.log('[GTM] submit: recovered icpId from API', icpId);
+                    } else {
+                        throw new Error('No ICP found for this business. Please create your ICP first.');
+                    }
+                } catch (recoverErr) {
+                    throw recoverErr;
+                }
+            }
+
+            // Format goals like frontend_old: stringify the array
+            const formattedGoals = kpis.map(kpi => ({
+                goal: kpi.type,
+                count: parseInt(kpi.value) || 0
+            }));
+
+            const gtmData = {
+                businessId,
+                targetAudienceICPId: icpId,
+                domain: domain || '',
+                gtmName: form.gtmName,
+                mainObjectives: form.objective,
+                goals: JSON.stringify(formattedGoals),
+                keyCustomerPainPoint: form.painPoint,
+                coreValueProposition: form.valueProposition,
+                gtmDuration: form.duration,
+            };
+
+            console.log('[GTM] submit: sending data', gtmData);
+            
+            const response = await businessService.createGtmGoal(gtmData);
+            console.log('[GTM] submit: response', response);
+
+            if (response?.message === "GTM strategy created successfully" || response?.success) {
+                setShowToast(true);
+                // Check if there's a campaign ID to navigate to (like frontend_old)
+                const campaignId = response?.campaign?.id;
+                if (campaignId) {
+                    setTimeout(() => { 
+                        window.location.href = `/campaigns/${campaignId}/new/workflow`; 
+                    }, 1500);
+                } else {
+                    // Fallback to success page if no campaign ID
+                    setTimeout(() => { 
+                        window.location.href = '/onboarding/success'; 
+                    }, 1500);
+                }
+            } else {
+                throw new Error(response?.message || 'Failed to create GTM strategy');
+            }
+        } catch (err: any) {
+            console.error('[GTM] submit: error', err);
+            setGenError(err.response?.data?.message || err.message || 'Failed to save GTM goal. Please try again.');
+            setIsPreviewLoading(false);
+        }
     };
 
     return (
@@ -270,10 +345,27 @@ export default function GtmGoalPage() {
                                 </div>
                             </div>
 
+                            {/* Error Display */}
+                            {genError && (
+                                <div className="rounded-xl bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+                                    <AlertTriangle size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm text-red-700">{genError}</p>
+                                </div>
+                            )}
+
                             <div className="pt-4 flex items-center justify-between gap-4">
                                 <button type="button" onClick={() => window.history.back()} className="text-sm font-semibold text-gray-600 hover:text-gray-800">Back</button>
-                                <button type="submit" disabled={!isFormValid} className="h-12 px-6 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6B2C] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
-                                    Save Goal & Continue <ArrowRight size={18} />
+                                <button type="submit" disabled={!isFormValid || isPreviewLoading} className="h-12 px-6 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF6B2C] to-[#3AA3FF] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6B2C] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                                    {isPreviewLoading ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Save Goal & Continue <ArrowRight size={18} />
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </form>
