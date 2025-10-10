@@ -34,12 +34,7 @@ type Campaign = BackendCampaign & {
   totalLeads?: number; // ✅ Total leads count
 };
 
-const MOCK_CAMPAIGNS: Campaign[] = [
-    { id: 'cam_1', name: 'Q4 Enterprise Outreach - US', status: 'active', gtmId: 'gtm_1', gtmGoal: 'SaaS Expansion', audienceName: 'Tech Executives', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 350, total: 500 }, totalLeads: 500, replyRate: 62, meetingsBooked: 28, channels: ['LinkedIn', 'Email'] as Channel[], lastActivity: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'cam_2', name: 'Mid-Market Expansion - EMEA', status: 'active', gtmId: 'gtm_2', gtmGoal: 'Enterprise Growth', audienceName: 'VPs of Marketing', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 120, total: 300 }, totalLeads: 300, replyRate: 45, meetingsBooked: 12, channels: ['LinkedIn', 'Email', 'Voice'] as Channel[], lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'cam_3', name: 'Startup Program Nurture', status: 'completed', gtmId: 'gtm_3', gtmGoal: 'Product Launch', audienceName: 'Startup Founders', created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 200, total: 200 }, totalLeads: 200, replyRate: 88, meetingsBooked: 45, channels: ['Email'] as Channel[], lastActivity: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'cam_4', name: 'Q1 2026 Planning (Draft)', status: 'draft', gtmId: 'gtm_4', gtmGoal: 'Market Research', audienceName: 'CTOs & Tech Leaders', created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), campaignLeads: [], leadsCompleted: { current: 0, total: 1000 }, totalLeads: 1000, replyRate: 0, meetingsBooked: 0, channels: ['LinkedIn'] as Channel[], lastActivity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
-];
+ 
 
 // --- Reusable Themed Components ---
 
@@ -142,12 +137,12 @@ export default function CampaignListingPage() {
                 setCampaigns(transformedCampaigns);
             } else {
                 // Fallback to mock data if no campaigns exist
-                setCampaigns(MOCK_CAMPAIGNS);
+                // setCampaigns(MOCK_CAMPAIGNS);
             }
         } catch (err) {
             console.error('Error loading campaigns:', err);
             // Fallback to mock data on error
-            setCampaigns(MOCK_CAMPAIGNS);
+            // setCampaigns(MOCK_CAMPAIGNS);
             setError('Failed to load campaigns from server. Showing sample data.');
         } finally {
             setLoading(false);
