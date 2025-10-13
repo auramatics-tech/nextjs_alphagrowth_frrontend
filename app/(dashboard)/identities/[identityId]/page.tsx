@@ -128,15 +128,7 @@ export default function IdentityManagementPage() {
         }));
     };
 
-    const handleWorkingHoursChange = (day: keyof WorkingHours, field: 'start' | 'end' | 'enabled', value: string | boolean) => {
-        setWorkingHours(prev => ({
-            ...prev,
-            [day]: {
-                ...prev[day],
-                [field]: value
-            }
-        }));
-    };
+ 
 
     // Load action limits from API
     const loadActionLimits = async (identityId: string) => {
@@ -218,19 +210,7 @@ export default function IdentityManagementPage() {
             label: 'Action Limits',
             icon: BarChart3,
             description: 'Configure sending limits'
-        },
-        {
-            id: 'email' as TabType,
-            label: 'Email Settings',
-            icon: Mail,
-            description: 'Email configuration'
-        },
-        {
-            id: 'past' as TabType,
-            label: 'Past Actions',
-            icon: History,
-            description: 'View action history'
-        }
+        } 
     ];
 
     if (isLoading) {
@@ -410,25 +390,7 @@ export default function IdentityManagementPage() {
                     </div>
                 );
 
-            case 'email':
-                return (
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-900">Email Settings</h2>
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                            <p className="text-gray-500">Email configuration settings will be implemented here.</p>
-                        </div>
-                    </div>
-                );
-
-            case 'past':
-                return (
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-semibold text-gray-900">Past Actions</h2>
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                            <p className="text-gray-500">Action history will be displayed here.</p>
-                        </div>
-                    </div>
-                );
+         
 
             default:
                 return null;
