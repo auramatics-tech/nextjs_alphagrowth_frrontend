@@ -41,10 +41,10 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
   // ✅ Simple fetch audiences function
   const fetchAudiences = useCallback(async () => {
     if (!campaignId) return;
-    
+
     setAudienceLoading(true);
     setAudienceError(null);
-    
+
     try {
       const fetchedAudiences = await audienceService.getAudiences(campaignId);
       setAudiences(fetchedAudiences);
@@ -68,13 +68,13 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
 
     setAudienceLoading(true);
     setAudienceError(null);
-    
+
     try {
       const response = await audienceService.selectAudience(campaignId, id);
-      
+
       if (response.success) {
         console.log('Audience selected successfully');
-        
+
         // ✅ Refresh parent campaign data to get updated selectedAudience
         if (onCampaignDataRefresh) {
           await onCampaignDataRefresh();
@@ -278,7 +278,7 @@ const CampaignSidebarManager: React.FC<CampaignSidebarManagerProps> = ({
 
 
 
-     
+
     </>
   );
 };

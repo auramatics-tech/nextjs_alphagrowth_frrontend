@@ -19,7 +19,7 @@ interface ImportFormProps {
 }
 
 const ImportForm: React.FC<ImportFormProps> = ({
-  selectedMethod,
+ 
   methodConfig,
   selectedIdentity,
   identities,

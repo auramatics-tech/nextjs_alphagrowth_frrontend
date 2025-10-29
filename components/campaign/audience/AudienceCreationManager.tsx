@@ -39,7 +39,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
 
   // CSV Import handler
   const handleCSVImportComplete = useCallback(async (importData: any) => {
-    const { file, fieldMappings, previewData } = importData;
+    const {   previewData } = importData;
 
     try {
       startImport(previewData.length);
@@ -54,10 +54,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
     }
   }, [startImport, updateProgress, completeImport, failImport, resetImport]);
 
-  // Navigation handlers
-  const handleViewChange = useCallback((view: AudienceCreationView) => {
-    setCurrentView(view);
-  }, []);
+ 
 
   const handleLinkedInImport = useCallback(() => {
     setCurrentView('linkedin-import');

@@ -25,10 +25,9 @@ const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({
   onComplete,
   campaignId
 }) => {
-  const [showConnectionPopup, setShowConnectionPopup] = useState(false);
-  const [showLeadSearch, setShowLeadSearch] = useState(false);
-  const [connectionId, setConnectionId] = useState<string | null>(null);
-  const [importedLeads, setImportedLeads] = useState<LinkedInLead[]>([]);
+ 
+   
+ 
   const [searchURL, setSearchURL] = useState('');
   const [audienceName, setAudienceName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,28 +38,13 @@ const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({
     identities,
     selectedIdentity,
     selectIdentity,
-    createIdentity
   } = useIdentities({ autoFetch: true, linkedInOnly: true });
 
-  const handleConnectionSuccess = useCallback((newConnectionId: string) => {
-    setConnectionId(newConnectionId);
-    setShowConnectionPopup(false);
-    onNext();
-  }, [onNext]);
+ 
 
-  const handleImportLeads = useCallback((leads: LinkedInLead[]) => {
-    setImportedLeads(leads);
-    setShowLeadSearch(false);
-    onComplete(leads);
-  }, [onComplete]);
+ 
 
-  const handleSearchClick = useCallback(() => {
-    if (!connectionId) {
-      setShowConnectionPopup(true);
-    } else {
-      setShowLeadSearch(true);
-    }
-  }, [connectionId]);
+   
 
   const handleImport = useCallback(async () => {
     if (!selectedIdentity || !audienceName || (selectedMethod !== 'followed_company' && !searchURL)) {
@@ -277,7 +261,7 @@ const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({
             </div>
 
             <button
-              onClick={step === 3 ? () => onComplete(importedLeads) : onNext}
+              onClick={step === 3 ? () => onComplete() : onNext}
               disabled={step === 1 && !selectedMethod}
               className={`px-6 py-2 rounded-lg font-medium transition-all ${
                 step === 3
