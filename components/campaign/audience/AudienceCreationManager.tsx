@@ -10,11 +10,11 @@ import CrmImportInfo from './CrmImportInfo';
 import CSVImportModal from '../CSVImportModal';
 import { useImport } from '@/contexts/ImportContext';
 
-export type AudienceCreationView = 
-  | 'options' 
-  | 'linkedin-import' 
-  | 'import-people' 
-  | 'crm-info' 
+export type AudienceCreationView =
+  | 'options'
+  | 'linkedin-import'
+  | 'import-people'
+  | 'crm-info'
   | 'csv-import';
 
 interface AudienceCreationManagerProps {
@@ -34,12 +34,12 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
   const [linkedInStep, setLinkedInStep] = useState(1);
   const [activeImportView, setActiveImportView] = useState<'main' | 'comment' | 'followers' | 'event' | 'like' | 'basic-search' | 'sales-navigator' | 'sales-navigator-list'>('main');
   const [isCSVImportModalOpen, setIsCSVImportModalOpen] = useState(false);
-  
+
   const { importState, startImport, updateProgress, completeImport, failImport, resetImport } = useImport();
 
   // CSV Import handler
   const handleCSVImportComplete = useCallback(async (importData: any) => {
-    const {   previewData } = importData;
+    const { previewData } = importData;
 
     try {
       startImport(previewData.length);
@@ -54,7 +54,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
     }
   }, [startImport, updateProgress, completeImport, failImport, resetImport]);
 
- 
+
 
   const handleLinkedInImport = useCallback(() => {
     setCurrentView('linkedin-import');
@@ -125,9 +125,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
     setActiveImportView(option as any);
   }, []);
 
-  const handleImportBackToMain = useCallback(() => {
-    setActiveImportView('main');
-  }, []);
+ 
 
   const handleImportPeopleComplete = useCallback(() => {
     onComplete?.();
@@ -153,7 +151,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
             onDatabaseImport={handleDatabaseImport}
           />
         );
-      
+
       case 'linkedin-import':
         return (
           <LinkedInImportFlow
@@ -164,7 +162,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
             campaignId={campaignId}
           />
         );
-      
+
       case 'import-people':
         return (
           <ImportPeopleScreen
@@ -175,14 +173,14 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
             onComplete={handleImportPeopleComplete}
           />
         );
-      
+
       case 'crm-info':
         return (
           <CrmImportInfo
             onBack={handleBackToOptions}
           />
         );
-      
+
       default:
         return null;
     }

@@ -42,10 +42,6 @@ const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({
 
  
 
- 
-
-   
-
   const handleImport = useCallback(async () => {
     if (!selectedIdentity || !audienceName || (selectedMethod !== 'followed_company' && !searchURL)) {
       return;
