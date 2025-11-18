@@ -24,6 +24,7 @@ import ImportLeadsModal from '../../../components/people/ImportLeadsModal';
 import peopleService, { Person, PaginationData } from '../../../services/peopleService';
 import leadService from '../../../services/leadService';
 import { toast } from 'react-hot-toast';
+import { useRouter, useSearchParams } from "next/navigation";
 
 
 // Column configuration (mapped to Apollo.io fields)
@@ -155,6 +156,11 @@ export default function PeopleDatabasePage() {
   // Page size options
   const pageSizeOptions = [10, 25, 50, 100];
 
+  const searchParams = useSearchParams();
+  const router = useRouter()
+  const campaignId = searchParams.get("campaignId"); // ?id=123
+
+
   // Filter State (maps to Apollo.io API) - Only filters from FILTER_CONFIGS
   const [filters, setFilters] = useState<Record<string, string[]>>({
     selectedJobs: [],
@@ -208,7 +214,7 @@ export default function PeopleDatabasePage() {
 
       // Update pagination
       if (response.pagination) {
-   
+
         setTotalRecords(response.pagination.total_entries);
         setTotalPages(response.pagination.total_pages);
         setCurrentPage(response.pagination.page);
@@ -232,7 +238,7 @@ export default function PeopleDatabasePage() {
     if (Object.values(filters).some(f => Array.isArray(f) ? f.length > 0 : f) || currentPage > 1) {
       fetchPeople();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPeople, currentPage, filters]);
 
   const handleSelectAll = () => {
@@ -317,7 +323,7 @@ export default function PeopleDatabasePage() {
       // Build payload matching old frontend format
       // Note: campaign_id will be added by backend or use a default
       const payload = {
-        campaign_id: '', // Empty - backend will handle or create default
+        campaign_id:campaignId, // Empty - backend will handle or create default
         audience_name: audienceName,
         leads: selectedLeads.map((user) => ({
           bio: user.bio,
@@ -357,7 +363,9 @@ export default function PeopleDatabasePage() {
 
       // Success feedback
       toast.success(`Successfully imported ${selectedLeads.length} leads to "${audienceName}"`);
-
+if(campaignId){
+router.push(`/campaigns/${campaignId}/new/workflow`)
+}
       // Clear selection
       setSelectedRows([]);
 
@@ -376,7 +384,7 @@ export default function PeopleDatabasePage() {
   const handleExportCSV = () => {
     try {
       const selectedLeads = people.filter(p => selectedRows.includes(p.id));
-      
+
       if (selectedLeads.length === 0) {
         toast.error('No leads selected for export');
         return;
@@ -418,11 +426,11 @@ export default function PeopleDatabasePage() {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `leads_export_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -438,13 +446,13 @@ export default function PeopleDatabasePage() {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs
-      if ((e.target as HTMLElement).tagName === 'INPUT' || 
-          (e.target as HTMLElement).tagName === 'TEXTAREA') {
+      if ((e.target as HTMLElement).tagName === 'INPUT' ||
+        (e.target as HTMLElement).tagName === 'TEXTAREA') {
         return;
       }
 
       if (e.ctrlKey || e.metaKey) {
-        switch(e.key.toLowerCase()) {
+        switch (e.key.toLowerCase()) {
           case 'f':
             e.preventDefault();
             setIsFilterSidebarCollapsed(false);
@@ -472,7 +480,7 @@ export default function PeopleDatabasePage() {
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRows, isAudienceModalOpen, isColumnMenuOpen, people, handleSelectAll, handleExportCSV]);
 
   const getPersonAvatar = (name: any) => {
@@ -601,8 +609,8 @@ export default function PeopleDatabasePage() {
       case 'email_status':
         return person.email_status ? (
           <span className={`px-2 py-1 text-xs rounded-full ${person.email_status === 'verified' ? 'bg-green-100 text-green-800' :
-              person.email_status === 'guessed' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-gray-100 text-gray-800'
+            person.email_status === 'guessed' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-gray-100 text-gray-800'
             }`}>
             {person.email_status}
           </span>
@@ -753,49 +761,49 @@ export default function PeopleDatabasePage() {
               </div>
             </div>
 
-          <div className="flex items-center gap-3">
-            {/* Selected Count */}
-            {selectedRows.length > 0 && (
-              <div className="text-sm text-gray-700 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
-                <span className="font-medium text-orange-700">{selectedRows.length}</span> selected
-              </div>
-            )}
-
-            {/* Export Button */}
-            {selectedRows.length > 0 && (
-              <button 
-                onClick={handleExportCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm"
-                title="Export selected leads to CSV (Ctrl+E)"
-              >
-                <Download size={16} />
-                <span>Export {selectedRows.length}</span>
-              </button>
-            )}
-
-            {/* Filter Toggle Button */}
-            <button 
-              onClick={handleToggleFilterSidebar}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              title="Toggle filters (Ctrl+F)"
-            >
-              <Filter size={16} className="text-gray-600" />
-              <span className="text-gray-700">Filters</span>
-              {Object.values(filters).some((f: any) => f.length > 0) && (
-                <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {Object.values(filters).filter((f: any) => f.length > 0).length}
-                </span>
+            <div className="flex items-center gap-3">
+              {/* Selected Count */}
+              {selectedRows.length > 0 && (
+                <div className="text-sm text-gray-700 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200">
+                  <span className="font-medium text-orange-700">{selectedRows.length}</span> selected
+                </div>
               )}
-            </button>
 
-            {/* Keyboard Shortcuts Helper */}
-            <div className="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
-              <span className="font-mono">Ctrl+F</span> Filters • 
-              <span className="font-mono ml-1">Ctrl+A</span> Select All • 
-              <span className="font-mono ml-1">Ctrl+E</span> Export • 
-              <span className="font-mono ml-1">Esc</span> Close
+              {/* Export Button */}
+              {selectedRows.length > 0 && (
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm"
+                  title="Export selected leads to CSV (Ctrl+E)"
+                >
+                  <Download size={16} />
+                  <span>Export {selectedRows.length}</span>
+                </button>
+              )}
+
+              {/* Filter Toggle Button */}
+              <button
+                onClick={handleToggleFilterSidebar}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Toggle filters (Ctrl+F)"
+              >
+                <Filter size={16} className="text-gray-600" />
+                <span className="text-gray-700">Filters</span>
+                {Object.values(filters).some((f: any) => f.length > 0) && (
+                  <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {Object.values(filters).filter((f: any) => f.length > 0).length}
+                  </span>
+                )}
+              </button>
+
+              {/* Keyboard Shortcuts Helper */}
+              <div className="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+                <span className="font-mono">Ctrl+F</span> Filters •
+                <span className="font-mono ml-1">Ctrl+A</span> Select All •
+                <span className="font-mono ml-1">Ctrl+E</span> Export •
+                <span className="font-mono ml-1">Esc</span> Close
+              </div>
             </div>
-          </div>
           </div>
         </div>
 
@@ -820,7 +828,7 @@ export default function PeopleDatabasePage() {
                   <th
                     key={column.key}
                     className={`px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap ${column.key === 'profilePicture' ? 'sticky-profile' :
-                        column.isSticky ? 'sticky-name' : ''
+                      column.isSticky ? 'sticky-name' : ''
                       }`}
                   >
                     {column.label}
@@ -844,48 +852,48 @@ export default function PeopleDatabasePage() {
               </tr>
             </thead>
 
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
-              // Loading skeleton rows
-              <>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <tr key={i} className="animate-pulse">
-                    {/* Checkbox skeleton */}
-                    <td className="sticky-checkbox px-4 py-3">
-                      <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    </td>
-                    
-                    {/* Profile picture skeleton */}
-                    <td className="sticky-profile px-4 py-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                    </td>
-                    
-                    {/* Name skeleton */}
-                    <td className="sticky-name px-4 py-3">
-                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-32"></div>
-                        <div className="h-3 bg-gray-200 rounded w-24"></div>
-                      </div>
-                    </td>
-                    
-                    {/* Other columns skeleton */}
-                    {visibleColumns.slice(3).map((col, idx) => (
-                      <td key={idx} className="px-4 py-3">
-                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                // Loading skeleton rows
+                <>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <tr key={i} className="animate-pulse">
+                      {/* Checkbox skeleton */}
+                      <td className="sticky-checkbox px-4 py-3">
+                        <div className="w-4 h-4 bg-gray-200 rounded"></div>
                       </td>
-                    ))}
-                    
-                    {/* Add column placeholder */}
-                    <td className="px-4 py-3"></td>
-                    
-                    {/* Actions skeleton */}
-                    <td className="px-4 py-3">
-                      <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    </td>
-                  </tr>
-                ))}
-              </>
-            ) : error ? (
+
+                      {/* Profile picture skeleton */}
+                      <td className="sticky-profile px-4 py-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                      </td>
+
+                      {/* Name skeleton */}
+                      <td className="sticky-name px-4 py-3">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-32"></div>
+                          <div className="h-3 bg-gray-200 rounded w-24"></div>
+                        </div>
+                      </td>
+
+                      {/* Other columns skeleton */}
+                      {visibleColumns.slice(3).map((col, idx) => (
+                        <td key={idx} className="px-4 py-3">
+                          <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        </td>
+                      ))}
+
+                      {/* Add column placeholder */}
+                      <td className="px-4 py-3"></td>
+
+                      {/* Actions skeleton */}
+                      <td className="px-4 py-3">
+                        <div className="w-4 h-4 bg-gray-200 rounded"></div>
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              ) : error ? (
                 <tr>
                   <td colSpan={visibleColumns.length + 3} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
@@ -933,7 +941,7 @@ export default function PeopleDatabasePage() {
                       <td
                         key={column.key}
                         className={`px-4 py-3 text-sm whitespace-nowrap ${column.key === 'profilePicture' ? 'sticky-profile' :
-                            column.isSticky ? 'sticky-name' : ''
+                          column.isSticky ? 'sticky-name' : ''
                           }`}
                       >
                         {renderCellContent(person, column)}
@@ -1039,8 +1047,8 @@ export default function PeopleDatabasePage() {
                         onClick={() => setCurrentPage(page)}
                         disabled={loading}
                         className={`w-8 h-8 rounded text-sm font-medium transition-colors disabled:opacity-50 ${page === currentPage
-                            ? 'bg-orange-500 text-white shadow-md'
-                            : 'text-gray-700 hover:bg-gray-100'
+                          ? 'bg-orange-500 text-white shadow-md'
+                          : 'text-gray-700 hover:bg-gray-100'
                           }`}
                       >
                         {page}

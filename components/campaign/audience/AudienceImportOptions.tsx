@@ -53,19 +53,19 @@ const AudienceImportOptions: React.FC<AudienceImportOptionsProps> = ({
       onClick: onCSVImport,
       delay: 0.4
     },
-    {
-      id: 'crm',
-      title: 'Import from CRM',
-      subtitle: 'Import contacts from your CRM system',
-      icon: (
-        <div className="w-6 h-6 bg-gray-600 rounded text-white text-xs font-bold flex items-center justify-center">
-          CRM
-        </div>
-      ),
-      badge: 'ULTIMATE',
-      onClick: onCrmImport,
-      delay: 0.5
-    }
+    // {
+    //   id: 'crm',
+    //   title: 'Import from CRM',
+    //   subtitle: 'Import contacts from your CRM system',
+    //   icon: (
+    //     <div className="w-6 h-6 bg-gray-600 rounded text-white text-xs font-bold flex items-center justify-center">
+    //       CRM
+    //     </div>
+    //   ),
+    //   badge: 'ULTIMATE',
+    //   onClick: onCrmImport,
+    //   delay: 0.5
+    // }
   ];
 
   return (

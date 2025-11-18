@@ -49,6 +49,7 @@ const MainSidebarContent: React.FC<MainSidebarContentProps> = ({
     case 'audience':
       return (
         <AudiencePanel
+        campaignId={campaignId}
           audiences={audiences}
           selectedAudience={selectedAudience}
           onAudienceSelect={onAudienceSelect}

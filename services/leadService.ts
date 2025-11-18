@@ -2,7 +2,7 @@ import apiClient from '../lib/apiClient';
 import { Person } from './peopleService';
 
 export interface AddLeadsPayload {
-  campaign_id: string;
+  campaign_id: any;
   audience_name: string;
   leads: Partial<Person>[];
 }

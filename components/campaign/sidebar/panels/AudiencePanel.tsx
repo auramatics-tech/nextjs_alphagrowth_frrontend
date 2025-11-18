@@ -12,6 +12,7 @@ interface AudiencePanelProps {
   onCreateNewAudience: () => void;
   audienceLoading?: boolean;
   audienceError?: string | null;
+  campaignId?: string ;
 }
 
 const AudiencePanel: React.FC<AudiencePanelProps> = ({
@@ -21,6 +22,7 @@ const AudiencePanel: React.FC<AudiencePanelProps> = ({
   onCreateNewAudience,
   audienceLoading,
   audienceError,
+  campaignId
 }) => {
   return (
     <div className="mt-4 space-y-3">

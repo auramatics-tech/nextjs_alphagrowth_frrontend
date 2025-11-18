@@ -4,7 +4,7 @@ export interface ImportLeadRequest {
   identity_id: string;
   audience_name: string;
   import_type: string;
-  campaign_id: string;
+  campaign_id: any;
   count?: number;
   linkedin_search_url?: string;
   post_url?: string;

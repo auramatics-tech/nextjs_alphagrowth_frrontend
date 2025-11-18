@@ -8,6 +8,7 @@ import { useIdentities } from '@/hooks/useIdentities';
 import { leadsImportService, ImportLeadRequest } from '@/services/leadsImportService';
 
 import RenderStepContent, { ImportProgressProps } from './RenderStepContent';
+import { useParams } from 'next/navigation';
 
 const POLLING_INTERVAL = 5000;
 
@@ -16,10 +17,14 @@ interface LinkedInImportFlowProps {
   onBack: () => void;
   onNext: () => void;
   onComplete: (leads?: LinkedInLead[]) => void;
-  campaignId?: string;
+ 
 }
 
-const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({ step, onBack, onNext, onComplete, campaignId }) => {
+const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({ step, onBack, onNext, onComplete }) => {
+
+  const params = useParams();
+
+  const campaignId = params.campaignId
   const [searchURL, setSearchURL] = useState('');
   const [audienceName, setAudienceName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -139,6 +144,9 @@ const LinkedInImportFlow: React.FC<LinkedInImportFlowProps> = ({ step, onBack, o
       // followed_company doesn't need URL
 
       // Call the correct import API (matches frontend_old)
+
+      console.log("importData----",importData);
+      
       const response = await leadsImportService.importLeadScrapper(importData);
 
       if (response.success) {

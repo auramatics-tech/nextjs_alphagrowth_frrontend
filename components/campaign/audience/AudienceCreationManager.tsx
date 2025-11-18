@@ -9,6 +9,7 @@ import ImportPeopleScreen from './ImportPeopleScreen';
 import CrmImportInfo from './CrmImportInfo';
 import CSVImportModal from '../CSVImportModal';
 import { useImport } from '@/contexts/ImportContext';
+import { useParams } from 'next/navigation';
 
 export type AudienceCreationView =
   | 'options'
@@ -21,15 +22,17 @@ interface AudienceCreationManagerProps {
   isOpen: boolean;
   onClose: () => void;
   onComplete?: (audienceData?: any) => void;
-  campaignId?: string;
+ 
 }
 
 const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
   isOpen,
   onClose,
   onComplete,
-  campaignId
+ 
 }) => {
+  const params = useParams();
+  const campaignId = params.campaignId
   const [currentView, setCurrentView] = useState<AudienceCreationView>('options');
   const [linkedInStep, setLinkedInStep] = useState(1);
   const [activeImportView, setActiveImportView] = useState<'main' | 'comment' | 'followers' | 'event' | 'like' | 'basic-search' | 'sales-navigator' | 'sales-navigator-list'>('main');
@@ -75,7 +78,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
   }, []);
 
   const handleDatabaseImport = useCallback(() => {
-    window.open('http://localhost:3001/people-database', '_blank');
+    window.open(`/people-database?campaignId=${campaignId}`, '_blank');
   }, []);
 
   const handleBackToOptions = useCallback(() => {
@@ -159,7 +162,7 @@ const AudienceCreationManager: React.FC<AudienceCreationManagerProps> = ({
             onBack={handleLinkedInBack}
             onNext={handleLinkedInNext}
             onComplete={handleLinkedInComplete}
-            campaignId={campaignId}
+ 
           />
         );
 
