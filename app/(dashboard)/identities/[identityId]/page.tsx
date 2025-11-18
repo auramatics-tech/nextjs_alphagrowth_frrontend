@@ -69,7 +69,7 @@ export default function IdentityManagementPage() {
         action_follow: 0,
         action_list_post: 0,
         action_send_email: 0,
-        action_make_call: 0
+        action_ai_voice_call: 0
     });
 
     // Saving states for each action

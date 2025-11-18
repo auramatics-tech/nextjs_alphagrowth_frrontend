@@ -22,6 +22,9 @@ export const useAuth = () => {
 
   const login = async (credentials: LoginCredentials) => {
     const result = await dispatch(loginUser(credentials));
+
+    console.log("result-----",result);
+    
     console.log("loginUser.fulfilled.match(result)-",loginUser.fulfilled.match(result));
     
     if (loginUser.fulfilled.match(result)) {
@@ -44,6 +47,7 @@ export const useAuth = () => {
 
   const signup = async (data: SignupData) => {
     const result = await dispatch(signupUser(data));
+console.log("result----",result);
 
     if (signupUser.fulfilled.match(result)) {
       const userStatus = result.payload.user?.status;
@@ -59,7 +63,7 @@ export const useAuth = () => {
         router.push('/dashboard');
       } else {
         // Default navigation for new users
-        router.push(ROUTES.ONBOARDING.REGISTRATION_SUCCESS);
+        router.push(ROUTES.ONBOARDING.BUSINESS_OVERVIEW);
       }
     }
   };
