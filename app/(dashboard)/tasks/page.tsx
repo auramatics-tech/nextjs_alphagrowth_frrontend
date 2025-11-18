@@ -99,12 +99,12 @@ export default function MyTasksPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">My Tasks</h2>
-          <button
+          {/* <button
             onClick={handleAddTask}
             className="bg-gradient-to-r from-orange-500 to-blue-500 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-blue-600 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             + Add Task
-          </button>
+          </button> */}
         </div>
       </div>
 
