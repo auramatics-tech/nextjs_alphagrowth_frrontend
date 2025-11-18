@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '../../components/layout/MainLayout';
 import { Search, Bell, HelpCircle } from 'lucide-react';
@@ -66,6 +66,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return null;
   }
   
+  const handleLogout = useCallback(() => {
+    try {
+      localStorage.removeItem('_token');
+      localStorage.removeItem('login-jwt');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+    } catch (err) {
+      console.error('Error clearing auth tokens:', err);
+    } finally {
+      router.push('/login');
+    }
+  }, [router]);
+
   // Default header actions for all dashboard pages
   const headerActions = (
     <div className="flex items-center gap-4">
@@ -82,6 +95,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </button>
       <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
         <HelpCircle size={20} />
+      </button>
+      <button
+        onClick={handleLogout}
+        className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+      >
+        Logout
       </button>
     </div>
   );
