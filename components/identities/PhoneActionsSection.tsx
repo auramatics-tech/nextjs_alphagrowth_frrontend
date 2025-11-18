@@ -45,7 +45,7 @@ const PhoneActionsSection: React.FC<PhoneActionsSectionProps> = ({
 
     const phoneActions = [
         {
-            key: 'action_make_call',
+            key: 'action_ai_voice_call',
             label: 'Phone Calls',
             min: 0,
             max: 50,
