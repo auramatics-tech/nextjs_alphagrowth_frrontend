@@ -69,7 +69,18 @@ const MOCK_ICP = {
     avatarUrl: `https://placehold.co/40x40/E2E8F0/4A5568?text=ICP`
 };
 
-const KPI_OPTIONS = ['Demos Booked', 'Replies', 'Opportunities', 'Pipeline $', 'Meetings Set'];
+const KPI_OPTIONS = [
+    'Meetings Booked',
+    'Leads Generated',
+    'No. of Replies',
+    'Deals Won',
+    'Trials / Signup',
+    'Revenue Generated',
+    'Email Open Rate',
+    'Connection Request Accepted',
+    'Click-Through Rate (CTR) (%)',
+    'Custom Metric'
+];
 
 type Kpi = {
   id: number;
@@ -88,6 +99,10 @@ export default function GtmGoalPage() {
         valueProposition: ''
     });
     const [kpis, setKpis] = useState<Kpi[]>([{ id: 1, type: 'Demos Booked', value: '' }]);
+    const [icps, setIcps] = useState<any[]>([]);
+    const [selectedIcpId, setSelectedIcpId] = useState<string>('');
+    const [icpLoading, setIcpLoading] = useState(false);
+    const [icpError, setIcpError] = useState<string | null>(null);
     
     // UI State
     const [isFormValid, setIsFormValid] = useState(false);
@@ -110,9 +125,45 @@ export default function GtmGoalPage() {
             form.painPoint.trim() !== '' &&
             form.valueProposition.trim() !== '' &&
             form.duration.trim() !== '' &&
-            allKpisValid;
+            allKpisValid &&
+            (!!selectedIcpId || typeof window === 'undefined');
         setIsFormValid(isValid);
-    }, [form, kpis]);
+    }, [form, kpis, selectedIcpId]);
+
+    useEffect(() => {
+        const win = typeof window !== 'undefined' ? window : undefined;
+        if (!win) return;
+        const businessId = win.localStorage.getItem('businessId');
+        if (!businessId) {
+            setIcps([]);
+            setSelectedIcpId('');
+            return;
+        }
+        setIcps([]);
+        setIcpLoading(true);
+        setIcpError(null);
+        businessService.getIcps(businessId)
+            .then((res: any) => {
+                const fetched = Array.isArray(res?.icps) ? res.icps : [];
+                setIcps(fetched);
+                const storedIcp = win.localStorage.getItem('icpId');
+                if (storedIcp && fetched.some((i: any) => i.id === storedIcp)) {
+                    setSelectedIcpId(storedIcp);
+                } else if (fetched[0]?.id) {
+                    setSelectedIcpId(fetched[0].id);
+                    win.localStorage.setItem('icpId', fetched[0].id);
+                } else {
+                    setSelectedIcpId('');
+                }
+            })
+            .catch((err: any) => {
+                console.error('[GTM] fetch ICPs error', err);
+                setIcps([]);
+                setSelectedIcpId('');
+                setIcpError(err?.response?.data?.message || 'Unable to load ICPs. Please create one first.');
+            })
+            .finally(() => setIcpLoading(false));
+    }, []);
 
     useEffect(() => {
         if (form.objective.trim() && (kpis[0]?.value || '').trim()) {
@@ -138,7 +189,7 @@ export default function GtmGoalPage() {
         try {
             const win = typeof window !== 'undefined' ? window : undefined;
             let businessId = win ? localStorage.getItem('businessId') : null;
-            let icpId = win ? localStorage.getItem('icpId') : null;
+            let icpId = selectedIcpId || (win ? localStorage.getItem('icpId') : null);
             console.log('[GTM] generate: initial ids', { businessId, icpId });
 
             if (!businessId) throw new Error('Missing businessId. Please complete business setup first.');
@@ -152,6 +203,7 @@ export default function GtmGoalPage() {
                         icpId = first.id;
                         localStorage.setItem('icpId', icpId as string);
                         console.log('[GTM] generate: recovered icpId from API', icpId);
+                        setSelectedIcpId(first.id);
                     } else {
                         throw new Error('No ICP found for this business. Please create your ICP first.');
                     }
@@ -159,18 +211,32 @@ export default function GtmGoalPage() {
                     throw recoverErr;
                 }
             }
+            if (win && icpId) {
+                win.localStorage.setItem('icpId', icpId as string);
+            }
 
-            const res = await businessService.generateGtmPainPoints({
+            const formattedGoals = kpis.map(kpi => ({
+                goal: kpi.type,
+                count: parseInt(kpi.value) || 0
+            }));
+
+            const payload = {
                 businessId,
-                icpId: icpId as string,
-                goal_title: form.gtmName,
-                target_segment: MOCK_ICP.title, // replace with real segment when available
-                channel_focus: 'LinkedIn'
-            });
+                gtmName: form.gtmName,
+                mainObjectives: form.objective,
+                goals: JSON.stringify(formattedGoals),
+                targetAudienceICPId: icpId,
+                keyCustomerPainPoint: form.painPoint,
+                coreValueProposition: form.valueProposition,
+                gtmDuration: form.duration,
+                generatedPropmt: ''
+            };
+
+            const res = await businessService.generateGtmPainPoints(payload);
             console.log('[GTM] generate: api response', res);
 
-            const pain = res?.pain_point || res?.pain || res?.data?.pain_point || '';
-            const value = res?.value_proposition || res?.valueProp || res?.data?.value_proposition || '';
+            const pain = res?.data?.painPoint || res?.pain_point || res?.pain || '';
+            const value = res?.data?.valueProposition || res?.value_proposition || res?.valueProp || '';
             console.log('[GTM] generate: parsed', { pain, value });
             setAiPreview({ painPoint: pain, valueProp: value });
             // Optionally prefill user fields if empty
@@ -201,7 +267,7 @@ export default function GtmGoalPage() {
         try {
             const win = typeof window !== 'undefined' ? window : undefined;
             let businessId = win ? localStorage.getItem('businessId') : null;
-            let icpId = win ? localStorage.getItem('icpId') : null;
+            let icpId = selectedIcpId || (win ? localStorage.getItem('icpId') : null);
             const domain = win ? localStorage.getItem('businessDomain') : null;
             
             console.log('[GTM] submit: initial data', { businessId, icpId, domain });
@@ -219,12 +285,16 @@ export default function GtmGoalPage() {
                         icpId = first.id;
                         localStorage.setItem('icpId', icpId as string);
                         console.log('[GTM] submit: recovered icpId from API', icpId);
+                        setSelectedIcpId(first.id);
                     } else {
                         throw new Error('No ICP found for this business. Please create your ICP first.');
                     }
                 } catch (recoverErr) {
                     throw recoverErr;
                 }
+            }
+            if (win && icpId) {
+                win.localStorage.setItem('icpId', icpId as string);
             }
 
             // Format goals like frontend_old: stringify the array
@@ -298,23 +368,60 @@ export default function GtmGoalPage() {
                                 <label htmlFor="objective" className="block text-sm font-medium text-gray-700 mb-1">Main Objective*</label>
                                 <textarea id="objective" value={form.objective} onChange={e => setForm(prev => ({ ...prev, objective: e.target.value }))} rows={4} placeholder="Book 30 demos with enterprise BI leaders in NA…" className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FF6B2C] resize-none" />
                             </div>
-                            {/* Target Audience (ICP) removed as requested */}
+                            <div>
+                                <label htmlFor="targetAudience" className="block text-sm font-medium text-gray-700 mb-1">Target audience for this goal* </label>
+                                {icpLoading ? (
+                                    <div className="w-full h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-sm text-gray-500">
+                                        Loading ICPs...
+                                    </div>
+                                ) : icps.length > 0 ? (
+                                    <select
+                                        id="targetAudience"
+                                        value={selectedIcpId}
+                                        onChange={e => setSelectedIcpId(e.target.value)}
+                                        className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6B2C] h-12"
+                                    >
+                                        {icps.map(icp => (
+                                            <option key={icp.id} value={icp.id}>
+                                                {icp.name || icp.title || 'Unnamed ICP'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                                        <p>No ICPs found. Please create an ICP first.</p>
+                                    </div>
+                                )}
+                                {icpError && <p className="text-xs text-red-600 mt-1">{icpError}</p>}
+                            </div>
                             
                             <div className="space-y-3">
-                                <label className="block text-sm font-medium text-gray-700">Key Performance Indicators (KPIs)*</label>
+                                <label className="block text-sm font-medium text-gray-700">How will you measure success for this goal?*</label>
                                 {kpis.map((kpi, index) => (
                                     <div key={kpi.id} className="grid grid-cols-12 gap-2 items-center">
-                                        <div className="col-span-6"><select value={kpi.type} onChange={e => handleKpiChange(kpi.id, 'type', e.target.value)} className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6B2C] h-12"><option>Demos Booked</option><option>Replies</option><option>Opportunities</option><option>Pipeline $</option><option>Meetings Set</option></select></div>
+                                        <div className="col-span-6">
+                                            <select
+                                                value={kpi.type}
+                                                onChange={e => handleKpiChange(kpi.id, 'type', e.target.value)}
+                                                className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6B2C] h-12"
+                                            >
+                                                {KPI_OPTIONS.map(option => (
+                                                    <option key={option} value={option}>
+                                                        {option}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         <div className="col-span-5"><input type="number" value={kpi.value} onChange={e => handleKpiChange(kpi.id, 'value', e.target.value)} min="1" className="w-full rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6B2C] h-12" /></div>
                                         <div className="col-span-1">{kpis.length > 1 && <button type="button" onClick={() => removeKpi(kpi.id)} className="text-gray-400 hover:text-red-500"><X size={18}/></button>}</div>
                                     </div>
                                 ))}
-                                <button type="button" onClick={addKpi} className="flex items-center gap-1 text-sm font-semibold text-[#FF6B2C] hover:text-orange-700"><PlusCircle size={16} /> Add another KPI</button>
+                                <button type="button" onClick={addKpi} className="flex items-center gap-1 text-sm font-semibold text-[#FF6B2C] hover:text-orange-700"><PlusCircle size={16} /> Add metric</button>
                             </div>
 
                             {/* Generate Button (placed above the two textareas, like old) */}
                             <div className="flex items-center justify-end">
-                                <button type="button" onClick={handleGenerate} className="flex items-center gap-2 h-12 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-orange-500 to-blue-500 hover:opacity-90">
+                                <button type="button" onClick={handleGenerate} disabled={!selectedIcpId} className="flex items-center gap-2 h-12 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-orange-500 to-blue-500 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                                     Generate Main Pain Point and Core value Proposition from AI
                                 </button>
                             </div>

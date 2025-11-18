@@ -39,13 +39,7 @@ export const businessService = {
   },
 
   // NEW: Generate GTM pain point and value proposition
-  generateGtmPainPoints: async (data: {
-    businessId: string;
-    icpId: string;
-    goal_title: string;
-    target_segment: string;
-    channel_focus: string;
-  }) => {
+  generateGtmPainPoints: async (data: any) => {
     const response = await apiClient.post('/pub/v1/onboarding/gtm-genrate-pin-point', data);
     return response.data;
   },

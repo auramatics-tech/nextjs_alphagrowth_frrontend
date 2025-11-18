@@ -66,7 +66,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return null;
   }
   
-  const handleLogout = useCallback(() => {
+  const handleLogout = () => {
     try {
       localStorage.removeItem('_token');
       localStorage.removeItem('login-jwt');
@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     } finally {
       router.push('/login');
     }
-  }, [router]);
+  };
 
   // Default header actions for all dashboard pages
   const headerActions = (
