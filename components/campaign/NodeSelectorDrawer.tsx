@@ -49,13 +49,13 @@ const stepNodes: NodeItem[] = [
     icon: MessageSquare,
     type: 'action'
   },
-  {
-    id: 'action_ai_voice_message',
-    title: 'Voice Message',
-    subtitle: 'on Linkedin',
-    icon: Mic,
-    type: 'action'
-  },
+  // {
+  //   id: 'action_ai_voice_message',
+  //   title: 'Voice Message',
+  //   subtitle: 'on Linkedin',
+  //   icon: Mic,
+  //   type: 'action'
+  // },
   {
     id: 'action_create_task',
     title: 'Create Task',
